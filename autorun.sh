@@ -22,4 +22,4 @@ pip install -r requirements.txt
 npm install @smash-sdk/uploader
 
 # Upload rar file
-node up.ts
+# node up.ts

@@ -61,7 +61,7 @@ class FacilitoDL:
 
     def make_zip_file(self):
         course_name = self.table_of_content['course_name']
-        command = ['zip', '-r', f'{course_name}.zip' f'{course_name}']
+        command = ['zip', '-r', f'{course_name}.zip', f'{course_name}']
         subprocess.run(command, check=True)
 
 
