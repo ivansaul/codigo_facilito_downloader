@@ -18,8 +18,6 @@ sudo apt install aria2 -y
 # Install python requirements
 pip install -r requirements.txt
 
-# Install SmashUploaderJS
-npm install @smash-sdk/uploader
-
-# Upload rar file
-# node up.ts
+# Run script
+python facilito.py
+python downloader.py

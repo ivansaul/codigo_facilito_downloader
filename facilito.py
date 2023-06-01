@@ -4,65 +4,14 @@ import sys
 import json
 import shutil
 import requests
-import subprocess
 from time import sleep
 from pprint import pprint
-from bs4 import BeautifulSoup
-
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
-class FacilitoDL:
-    """
-    external_downloader: str <- 'yt-dlp', 'wget', 'aria2'
-    """
-    
-    def __init__(self, table_of_content: dict, external_downloader: str):
-        self.table_of_content = table_of_content
-        self.external_downloader = external_downloader
-
-    
-    def m3u8_downloader(self, file_name, url, dest, ext_dwl):
-
-        cookies = 'cookies.txt'
-
-        if ext_dwl =='yt-dlp':
-            command = ['yt-dlp', '--cookies', 'cookies.txt', '-o', f'{dest}/{file_name}.%(ext)s', url]
-        elif ext_dwl =='wget':
-            command = ['yt-dlp', '--cookies', 'cookies.txt', '-o', f'{dest}/{file_name}.%(ext)s', '--external-downloader', 'wget', url]
-        elif ext_dwl =='aria2':
-            command = ['yt-dlp', '--cookies', 'cookies.txt', '-o', f'{dest}/{file_name}.%(ext)s', '--external-downloader', 'aria2c', '--external-downloader-args', '-s 10 -x 10 -k 1M', url]
-        subprocess.run(command, check=True)
-
-
-    def dl_course(self):
-       
-        modules = self.table_of_content['modules']
-        j, k = 1, sum(len(m) for m in modules)
-
-        os.mkdir(path='tmp')
-
-        for i, module in enumerate(modules):
-            dest = f'tmp/modulo_{i+1}'
-            os.mkdir(path = dest)
-            for video in module:
-                title = video[0]
-                url = video[1]
-                print(f'[{j} / {k}] {title}')
-                self.m3u8_downloader(file_name=f'{i+1}-{title}', url=url, dest=dest, ext_dwl=self.external_downloader)
-                j = j + 1
-        
-        os.rename(src='tmp', dst=self.table_of_content['course_name'])
-
-
-    def make_zip_file(self):
-        course_name = self.table_of_content['course_name']
-        command = ['zip', '-r', f'{course_name}.zip', f'{course_name}']
-        subprocess.run(command, check=True)
 
 
 class Facilito:
@@ -165,7 +114,9 @@ class Facilito:
 
             self.videos_m3u8_by_modules.append(tmp)
         self.table_of_content['modules'] = self.videos_m3u8_by_modules
-        
+
+
+    def write_data(self):    
         with open('data.json','w', encoding='utf-8') as file:
             json.dump(self.table_of_content, file, indent=4, ensure_ascii= False)
 
@@ -185,8 +136,5 @@ if __name__ == "__main__":
     facilito.login()
     facilito.get_course_content()
     facilito.get_m3u8_url()
+    facilito.write_data()
     facilito.quit()
-
-    dl = FacilitoDL(facilito.table_of_content, external_downloader='aria2')
-    dl.dl_course()
-    dl.make_zip_file()
