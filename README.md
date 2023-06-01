@@ -68,6 +68,8 @@ Ingresa la URL del curso a descargar: https://codigofacilito.com/videos/introduc
 python downloader.py
 ```
 
+> **Nota:** Si por algun motivo se cancela la descarga actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py` para que retome la descarga.
+
 Los videos se descargarán automáticamente en una carpeta con el mismo nombre del curso.
 
 
@@ -76,6 +78,11 @@ Los videos se descargarán automáticamente en una carpeta con el mismo nombre d
 ### **En Windows:** [[ver demo]][demo]
 
 Los scripts faltan optimizar para que funcionen correctamente. Por lo que se recomienda usar [Github Codespace][codespace] para primero scrapear las url de los videos y para finalmente descargarlas desde windows con [yt-dlp][yt-dlp]. 
+
+1. Crea un fork y en ella un codespace
+2. Ejecuta `sh autorun.sh` te creará un archivo json `data.json`, descargalo en la carpeta raiz.
+3. Copias y pega las cookies en `cookies.txt`
+4. Finalmente ejecuta `python downloader.py`
 
 Asegurate de tener instalados [Python][python] , [yt-dlp][yt-dlp] y [ffmpeg][ffmpeg].
 
@@ -96,5 +103,5 @@ No me hago responsable por cualquier mal uso, daño o consecuencia que pueda sur
 [yt-dlp]: https://github.com/yt-dlp/yt-dlp/wiki/Installation
 [aria2]: https://github.com/aria2/aria2/releases/tag/release-1.36.0
 [codespace]: https://github.com/codespaces
-[demo]: https://www.youtube.com
+[demo]: https://youtu.be/GbQwB0hYvQU
 [ffmpeg-win]:https://youtu.be/0zN9oZ98ZgE
