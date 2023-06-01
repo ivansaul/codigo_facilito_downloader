@@ -20,4 +20,4 @@ pip install -r requirements.txt
 
 # Run script
 python facilito.py
-python downloader.py
+#python downloader.py
