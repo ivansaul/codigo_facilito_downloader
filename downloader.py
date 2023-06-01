@@ -11,7 +11,7 @@ class Downloader:
         self.data_path  = 'data.json'
 
     def load_data(self):
-        with open(self.data_path, 'r') as f:
+        with open(self.data_path, 'r', encoding = 'utf-8') as f:
             self.data = json.load(f)
 
     def m3u8_downloader(self, file_name, url, dest, ext_dwl):
