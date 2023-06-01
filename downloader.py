@@ -1,5 +1,6 @@
-import json
 import os
+import json
+import platform
 import subprocess
 
 class Downloader:
@@ -57,7 +58,12 @@ class Downloader:
 
 if __name__ == "__main__":
 
-    dl = Downloader(external_downloader='aria2')
+    if platform.system() == "Windows":
+        external_downloader = 'yt-dlp'
+    else:
+        external_downloader = 'aria2'
+
+    dl = Downloader(external_downloader = external_downloader)
     dl.load_data()
     dl.dl_course()
     # dl.make_zip_file()
