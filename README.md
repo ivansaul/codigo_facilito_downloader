@@ -44,7 +44,7 @@ codigofacilito.com	FALSE	/	TRUE	1699756451
 .
 ```
 
-2. Ejecuta el script `facilito.py` para obtener las url de los vides. 
+2. Ejecuta el script `facilito.py` para obtener las url de los videos. 
 
 ```bash
 python facilito.py
