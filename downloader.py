@@ -40,12 +40,14 @@ class Downloader:
             if not os.path.exists(dest):
                 os.makedirs(dest)
 
+            m  = 1
             for video in module:
                 title = video[0]
                 url = video[1]
                 print(f'[{j} / {k}] {title}')
-                self.m3u8_downloader(file_name=f'{i+1}-{title}', url=url, dest=dest, ext_dwl=self.external_downloader)
+                self.m3u8_downloader(file_name=f'{m}-{title}', url=url, dest=dest, ext_dwl=self.external_downloader)
                 j = j + 1
+                m = m + 1
         
         os.rename(src='tmp', dst=self.data['course_name'])
 
