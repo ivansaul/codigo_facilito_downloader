@@ -38,7 +38,8 @@ sudo pacman -S firefox geckodriver ffmpeg aria2  yt-dlp
 # http://curl.haxx.se/rfc/cookie_spec.html
 # This is a generated file!  Do not edit.
 
-codigofacilito.com	FALSE	/	TRUE	1699756451	
+codigofacilito.com	FALSE	/	TRUE	1699756451	ahoy_visitor	7bd1d2a
+.codigofacilito.com	TRUE	/	TRUE	1686280291	__stripe_mid	58110a2
 .
 .
 .
