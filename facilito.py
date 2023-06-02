@@ -99,6 +99,9 @@ class Facilito:
     def get_m3u8_url(self):
         self.videos_m3u8_by_modules = []
         base_url = "https://video-storage.codigofacilito.com"
+        
+        j, k = 1, sum(len(m) for m in self.videos_url_by_modules)
+
         for videos in self.videos_url_by_modules:
             tmp = []
             for url in videos:
@@ -109,8 +112,9 @@ class Facilito:
                     video_title = self.get_video_title()
                     video_m3u8 = f'{base_url}/hls/{self.course_id}/{self.get_video_id()}/playlist.m3u8'
                     tmp.append((video_title, video_m3u8))
-                    print(video_title)
-                    print(video_m3u8)
+                    print(f'[{j} / {k}] {video_title}')
+                    # print(video_m3u8)
+                    j = j + 1
 
             self.videos_m3u8_by_modules.append(tmp)
         self.table_of_content['modules'] = self.videos_m3u8_by_modules
@@ -123,8 +127,8 @@ class Facilito:
 
 if __name__ == "__main__":
 
-    # username = ' '
-    # password = ' '
+    # username = ''
+    # password = ''
     # url_course = "https://codigofacilito.com/videos/introduccion-al-curso-6194a86b-4140-45a2-89e9-2fa9bcb03bf2"
 
     print('Ingresa tus credenciales de Codigo Facilito')
