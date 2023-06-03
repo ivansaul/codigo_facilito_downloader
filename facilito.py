@@ -72,6 +72,10 @@ class Facilito:
 
     def get_course_content(self):        
         self.driver.get(self.url_course)
+        sleep(5) # -> Find banner promo
+        banner_promo = self.driver.find_element(By.XPATH, '//div[@class="f-modal-close"]')
+        if banner_promo.is_displayed():
+            banner_promo.click() # Find banner promo <-
         wait = WebDriverWait(self.driver, 10)
         wait.until(EC.presence_of_element_located((By.XPATH, '//i[@class="f-normal-text material-icons bold"]')))
     
