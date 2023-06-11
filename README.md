@@ -1,11 +1,13 @@
+![Repo Banner](https://i.imgur.com/8mIVJuc.png)
+
 # Descarga automatizada de Codigo Facilito
+
+Descarga automática de los cursos de Codigo Facilito con un script creado en Python utilizando `yt-dlp` como un subproceso. Abajo dejo ejemplos de cómo se debe utilizar y las herramientas necesarias.
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/ivansaul/codigo_facilito_downloader)
 ![GitHub stars](https://img.shields.io/github/stars/ivansaul/codigo_facilito_downloader)
 ![GitHub forks](https://img.shields.io/github/forks/ivansaul/codigo_facilito_downloader)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-Descarga automática de los cursos de Codigo Facilito con un script creado en Python utilizando `yt-dlp` como un subproceso. Abajo dejo ejemplos de cómo se debe utilizar y las herramientas necesarias. 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 ## Instalación
 
