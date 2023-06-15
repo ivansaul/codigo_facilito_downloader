@@ -199,7 +199,7 @@ if __name__ == "__main__":
     password = input('Ingresa tu contraseña: ')
     url_course = input('Ingresa la URL del curso a descargar: ')
     
-    facilito = Facilito(username, password, url_course, headless = False)  
+    facilito = Facilito(username, password, url_course, headless = True)  
     facilito.check_gecko_driver()  
     facilito.login()
     facilito.get_course_content()
