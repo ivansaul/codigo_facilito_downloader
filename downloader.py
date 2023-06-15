@@ -71,7 +71,7 @@ class Downloader:
             platform = 'linux'
             url = f'https://github.com/aria2/aria2/releases/download/release-{release}/aria2-{release}-aarch64-linux-android-build1.zip'
             local_platform_path = os.path.join(bin_dir, platform)
-            local_driver_path = os.path.join(local_platform_path, 'geckodriver')
+            local_driver_path = os.path.join(local_platform_path, 'aria2c')
             var_separator = ':'
         elif sys.platform.startswith('win'):
             platform = 'win'
@@ -83,7 +83,7 @@ class Downloader:
             platform = 'mac'
             url = 'https://github.com/aria2/aria2/releases/download/release-1.35.0/aria2-1.35.0-osx-darwin.tar.bz2'
             local_platform_path = os.path.join(bin_dir, platform)
-            local_driver_path = os.path.join(local_platform_path, 'geckodriver')
+            local_driver_path = os.path.join(local_platform_path, 'aria2c')
             var_separator = ':'
         else:
             raise RuntimeError('Could not determine your OS')
