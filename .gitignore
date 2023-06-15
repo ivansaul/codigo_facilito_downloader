@@ -4,6 +4,7 @@
 *.mkv
 *.zip
 node_modules/
+bin/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
