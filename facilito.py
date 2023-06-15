@@ -133,22 +133,23 @@ class Facilito:
     def check_gecko_driver(self):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         bin_dir = os.path.join(script_dir, 'bin') 
-        
+        release = 'v0.33.0'
+
         if sys.platform.startswith('linux'):
             platform = 'linux'
-            url = 'https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz'
+            url = f'https://github.com/mozilla/geckodriver/releases/download/{release}/geckodriver-{release}-linux64.tar.gz'
             local_platform_path = os.path.join(bin_dir, platform)
             local_driver_path = os.path.join(local_platform_path, 'geckodriver')
             var_separator = ':'
         elif sys.platform == 'darwin':
             platform = 'mac'
-            url = 'https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-macos.tar.gz'
+            url = f'https://github.com/mozilla/geckodriver/releases/download/{release}/geckodriver-{release}-macos.tar.gz'
             local_platform_path = os.path.join(bin_dir, platform)
             local_driver_path = os.path.join(local_platform_path, 'geckodriver')
             var_separator = ':'
         elif sys.platform.startswith('win'):
             platform = 'win'
-            url = 'https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-win64.zip'
+            url = f'https://github.com/mozilla/geckodriver/releases/download/{release}/geckodriver-{release}-win64.zip'
             local_platform_path = os.path.join(bin_dir, platform)
             local_driver_path = os.path.join(local_platform_path, 'geckodriver.exe')
             var_separator = ';'
