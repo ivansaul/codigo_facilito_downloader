@@ -38,7 +38,7 @@ sudo pacman -S firefox geckodriver ffmpeg aria2  yt-dlp
 
 ### **Windows**
 
-> **Nota:** Asegurate de tener instalados [Python][python], Firefox[firefox] , [yt-dlp][yt-dlp] y [ffmpeg][ffmpeg].
+> **Nota:** Asegurate de tener instalados [Python][python], [Firefox][firefox] , [yt-dlp][yt-dlp] y [ffmpeg][ffmpeg].
 
 ```bash
 pip install -U yt-dlp
