@@ -4,6 +4,7 @@ import json
 import tarfile
 import zipfile
 import requests
+from utils import *
 from time import sleep
 from pprint import pprint
 
@@ -51,8 +52,8 @@ class Facilito:
 
 
     def get_course_name(self):
-        course_name = self.course_name =  self.driver.find_element(By.XPATH, '//a[@class="bold h5"]').text
-        return course_name
+        self.course_name =  self.driver.find_element(By.XPATH, '//a[@class="bold h5"]').text
+        return self.course_name
 
 
     def get_video_id(self):
@@ -191,13 +192,9 @@ class Facilito:
 
 if __name__ == "__main__":
 
-    # username = ''
-    # password = ''
     # url_course = "https://codigofacilito.com/videos/introduccion-al-curso-6194a86b-4140-45a2-89e9-2fa9bcb03bf2"
 
-    print('Ingresa tus credenciales de Codigo Facilito')
-    username = input('Ingresa tu e-mail: ')
-    password = input('Ingresa tu contraseña: ')
+    username, password = input_credentials()
     url_course = input('Ingresa la URL del curso a descargar: ')
     
     facilito = Facilito(username, password, url_course, headless = True)  
