@@ -3,13 +3,13 @@ import json
 from typing import Dict, List, Any
 
 def read_json(file_path) -> Dict[Any, Any]:
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', encoding='utf-8') as file:
         content = json.load(file)
     return content
 
 
 def write_json(data:Dict[Any, Any], file_path:str) -> None:
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent = 4, ensure_ascii = True)
 
 
