@@ -90,6 +90,8 @@ class Facilito:
         for i in range(1, n_modules + 1) :
             a = self.driver.find_elements(By.XPATH, f'//div[@class="f-top-16"][{i}]//a')
             a = [ i.get_attribute('href') for i in a ]
+            a = [ i for i in a if i!='https://codigofacilito.com/videos/' ] # FIXME: remove empty video
+            a = [ i for i in a if i!='https://codigofacilito.com/articulos/' ] # FIXME: remove empty article
             self.videos_url_by_modules.append(a)
 
         self.course_name = self.get_course_name()
