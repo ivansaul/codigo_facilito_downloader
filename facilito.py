@@ -119,8 +119,16 @@ class Facilito:
                     video_title = self.get_video_title()
                     video_m3u8 = f'{base_url}/hls/{self.course_id}/{self.get_video_id()}/playlist.m3u8'
                     tmp.append((video_title, video_m3u8))
-                    print(f'[{j} / {k}] {video_title}')
-                    # print(video_m3u8)
+                    print(f'[{j} / {k}][vid] {video_title}')
+                    j = j + 1
+
+                if('/articulos/' in url):
+                    self.driver.get(url)
+                    wait = WebDriverWait(self.driver, 10)
+                    wait.until(EC.presence_of_element_located((By.XPATH, '//input[@id="video_id"]')))
+                    # TODO: IMPLEMENT get_article_title()
+                    # article_title = self.get_article_title()
+                    print(f'[{j} / {k}][doc] ...')
                     j = j + 1
 
             self.videos_m3u8_by_modules.append(tmp)
@@ -191,8 +199,6 @@ class Facilito:
 
 
 if __name__ == "__main__":
-
-    # url_course = "https://codigofacilito.com/videos/introduccion-al-curso-6194a86b-4140-45a2-89e9-2fa9bcb03bf2"
 
     username, password = input_credentials()
     url_course = input('Ingresa la URL del curso a descargar: ')
