@@ -2,7 +2,8 @@ import os
 import json
 import click
 import subprocess
-from utils import *
+import utils
+from cookies import FacilitoCookies
 
 class Downloader:
     
@@ -75,7 +76,8 @@ help_q = 'Select the video quality (360, 480, 720, 1080 or best). Default: best'
 @click.option('-d', type=click.Choice(downloaders), default='aria2', prompt=False, help=help_d)
 @click.option('-q', type=click.Choice(qualities), default='best', prompt=False, help=help_q)
 def main(d, q):
-    check_aria2()
+    utils.check_aria2()
+    FacilitoCookies().get_cookies()
     dl = Downloader(external_downloader=d, quality=q)
     dl.load_data()
     dl.dl_course()
