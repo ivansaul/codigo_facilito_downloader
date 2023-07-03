@@ -101,6 +101,7 @@ Examples:
   python downloader.py -q 1080
   python downloader.py -d yt-dlp
   python downloader.py -d yt-dlp -q 720
+  python downloader.py --help
 ```
 
 > **Nota:** Si por algun motivo se cancela la descarga actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py` para que retome la descarga.
