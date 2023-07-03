@@ -96,13 +96,11 @@ Options:
   -q [360|480|720|1080|best]  Select the video quality (360, 480, 720, 1080 or
                               best). Default: best
   --help                      Show this message and exit.
-```
 
-Ejemplos de uso:
-```bash
-python downloader.py -q 1080
-python downloader.py -d yt-dlp
-python downloader.py -d yt-dlp -q 720
+Examples: 
+  python downloader.py -q 1080
+  python downloader.py -d yt-dlp
+  python downloader.py -d yt-dlp -q 720
 ```
 
 > **Nota:** Si por algun motivo se cancela la descarga actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py` para que retome la descarga.
