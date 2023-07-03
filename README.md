@@ -85,9 +85,28 @@ Ingresa la URL del curso a descargar: https://codigofacilito.com/videos/introduc
 python downloader.py
 ```
 
+Por defecto, los videos se descargarán automáticamente en una carpeta con el mismo nombre del curso, con la mejor(`best`) calidad existente y usando `aria2` como gestor de descargas. Para personalizar tu descarga puedes usar las siguientes opciones.
+
+```bash
+Usage: python downloader.py [OPTIONS]
+
+Options:
+  -d [yt-dlp|wget|aria2]      Select the external downloader (yt-dlp, wget, or
+                              aria2). Default: aria2.
+  -q [360|480|720|1080|best]  Select the video quality (360, 480, 720, 1080 or
+                              best). Default: best
+  --help                      Show this message and exit.
+```
+
+Ejemplos de uso:
+```bash
+python downloader.py -q 1080
+python downloader.py -d yt-dlp
+python downloader.py -d yt-dlp -q 720
+```
+
 > **Nota:** Si por algun motivo se cancela la descarga actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py` para que retome la descarga.
 
-Los videos se descargarán automáticamente en una carpeta con el mismo nombre del curso.
 
 
 # **Aviso de Uso**
