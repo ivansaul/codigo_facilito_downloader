@@ -90,7 +90,7 @@ Examples:
   python downloader.py --help
 ```
 
-> **Nota:** Si por algun motivo se cancela la descarga actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py [OPTIONS]` para que retome la descarga.
+> **Nota:** Si por algun motivo se cancela la descarga, vuelve a ejecutar `python downloader.py [OPTIONS]` para que retome la descarga.
 
 
 
