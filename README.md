@@ -93,8 +93,6 @@ Examples:
 > **Nota:** Si por algun motivo se cancela la descarga, vuelve a ejecutar `python downloader.py [OPTIONS]` para que retome la descarga.
 
 
-Prueba JJ para github a repo ivan
-
 # **Aviso de Uso**
 
 Este proyecto se realiza con fines exclusivamente educativos y de aprendizaje. El código proporcionado se ofrece "tal cual" sin ninguna garantía de su funcionamiento o idoneidad para ningún propósito específico.
