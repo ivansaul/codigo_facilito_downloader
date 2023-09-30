@@ -45,7 +45,20 @@ sudo pacman -S firefox geckodriver ffmpeg aria2  yt-dlp
 pip install -U yt-dlp
 ```
 
-## Instrucciones
+## Instrucciones [ver demo](https://www.youtube.com/watch?v=GbQwB0hYvQU)
+Inicia sesion en la plataforma y copia las cookies que te propociona la siguiente extension de Chrome Get cookies y pegalos en archivo cookies.txt que se encuentra en el directorio de raiz del script.
+```
+# Netscape HTTP Cookie File
+# http://curl.haxx.se/rfc/cookie_spec.html
+# This is a generated file!  Do not edit.
+
+codigofacilito.com	FALSE	/	TRUE	1699756451	ahoy_visitor	7bd1d2a
+.codigofacilito.com	TRUE	/	TRUE	1686280291	__stripe_mid	58110a2
+.
+.
+.
+```
+
 
 1. Ejecuta el script `facilito.py` para obtener las url de los videos. 
 
