@@ -9,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
+import undetected_chromedriver as uc
 
 class Facilito:
     def __init__(self, email, password, url_course, headless):      
@@ -28,12 +28,12 @@ class Facilito:
 
     def login(self):
         if self.headless:
-            options = webdriver.FirefoxOptions()
+            options = uc.ChromeOptions()
             options.add_argument('--headless')
             options.add_argument('--disable-gpu')
-            self.driver = webdriver.Firefox(options = options)
+            self.driver = uc.Chrome(options = options)
         else:
-            self.driver = webdriver.Firefox()
+            self.driver = uc.Chrome()
         
         self.driver.get(self.url_login) 
     
@@ -142,10 +142,12 @@ if __name__ == "__main__":
 
     username, password = input_credentials()
     url_course = input('Ingresa la URL del curso a descargar: ')
-    check_gecko_driver()
-    facilito = Facilito(username, password, url_course, headless = True)  
+    facilito = Facilito(username, password, url_course, headless = False)  
+    print('Logging in ...')
     facilito.login()
+    print('Getting course content ...')
     facilito.get_course_content()
+    print('Getting course content ...')
     facilito.get_m3u8_url()
     facilito.write_data()
     facilito.quit()
