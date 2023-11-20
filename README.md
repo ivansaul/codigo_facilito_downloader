@@ -10,6 +10,16 @@ Descarga automática de los cursos de Codigo Facilito con un script creado en Py
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 [![Discord](https://img.shields.io/badge/-Discord-424549?style=social&logo=discord)](https://discord.gg/b72uAVBz6b)
 
+## ⚠️ Avisos Importantes
+
+**¡Ups, Algo se Rompió!**
+
+Estamos experimentando algunos problemitas técnicos con el módulo `cookies.py`. 😅 Por desgracia, no tengo mucho tiempo en este momento para abordarlos, pero tengo la intención de lanzar una versión mejorada en unos días.
+
+¡Cualquier contribución será bien recibida! Siéntete libre de hacer un fork, corregir lo que puedas y enviarnos un pull request. ¡La comunidad te lo agradecerá enormemente! 🚀
+
+> **Nota:** Ya se realizaron algunos cambios en la rama [[features/cloudflare]][cloudflare-branch]. 
+
 ## Instalación
 
 El script utiliza **Selenium & Firefox (Gecko driver)**, así que asegúrate de tener instalado **Firefox browser** en tu ordenador.
@@ -112,3 +122,4 @@ No me hago responsable por cualquier mal uso, daño o consecuencia que pueda sur
 [codespace]: https://github.com/codespaces
 [demo]: https://youtu.be/GbQwB0hYvQU
 [ffmpeg-win]:https://youtu.be/0zN9oZ98ZgE
+[cloudflare-branch]:https://github.com/ivansaul/codigo_facilito_downloader/tree/feature/cloudflare
