@@ -1,4 +1,4 @@
 requests
 selenium == 4.11.2
 click
-git+https://www.github.com/faizanalhassan/undetected-chromedriver@master
+git+https://www.github.com/ultrafunkamsterdam/undetected-chromedriver@master
