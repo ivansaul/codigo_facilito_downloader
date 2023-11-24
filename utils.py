@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import shutil
@@ -179,6 +180,10 @@ def check_path(path: str) -> None:
     if(not os.path.exists(path)):
         os.makedirs(path, exist_ok=True)
 
+def get_valid_filename(filename):
+    pattern = r'^[ .]|[/<>:\"\\|?*]+|[ .]$'
+    name = re.sub(pattern, '',   filename)
+    return name
 # if __name__ == "__main__":
 #     input_credentials()
     

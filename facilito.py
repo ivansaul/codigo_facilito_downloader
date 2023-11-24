@@ -85,8 +85,9 @@ class Facilito:
         drop_downs = self.driver.find_elements(By.XPATH, '//i[@class="f-normal-text material-icons bold"]')
         i = 1
         for drop in drop_downs: 
-            n_title= self.driver.find_element(By.XPATH, f'//ul/div[{i}]/li/header/div/div[1]/div/h4').text
-            self.modules_titles.append(n_title)
+            module_titl= self.driver.find_element(By.XPATH, f'//ul/div[{i}]/li/header/div/div[1]/div/h4').text
+            module_title= get_valid_filename(module_titl)
+            self.modules_titles.append(module_title)
             drop.click()
             sleep(3)
             i += 1
