@@ -45,7 +45,7 @@ class Downloader:
             os.makedirs('tmp')
 
         for i, module in enumerate(modules):
-            dest = f'tmp/modulo_{i+1}'
+            dest = f'tmp/Modulo {i+1} - {self.data["modules_title"][i]}'
             if not os.path.exists(dest):
                 os.makedirs(dest)
 
@@ -54,7 +54,7 @@ class Downloader:
                 title = video[0]
                 url = video[1]
                 print(f'[{j} / {k}] {title}')
-                self.m3u8_downloader(file_name=f'{m}-{title}', url=url, dest=dest, ext_dwl=self.external_downloader)
+                self.m3u8_downloader(file_name=f'{title}', url=url, dest=dest, ext_dwl=self.external_downloader)
                 j = j + 1
                 m = m + 1
         
@@ -77,7 +77,7 @@ help_q = 'Select the video quality (360, 480, 720, 1080 or best). Default: best'
 @click.option('-q', type=click.Choice(qualities), default='best', prompt=False, help=help_q)
 def main(d, q):
     utils.check_aria2()
-    FacilitoCookies().get_cookies()
+    # FacilitoCookies().get_cookies()
     dl = Downloader(external_downloader=d, quality=q)
     dl.load_data()
     dl.dl_course()

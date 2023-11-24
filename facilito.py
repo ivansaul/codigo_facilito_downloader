@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from utils import *
 from time import sleep
@@ -63,9 +64,11 @@ class Facilito:
     
 
     def get_course_id(self):
-        course_id = self.driver.find_element(By.XPATH, '//input[@id="course_id"]').get_attribute("value")
+        course_id = self.driver.find_element(By.XPATH, '//input[@name="course_id"]').get_attribute("value")
         return course_id
 
+    def get_source_code(self):
+        return self.driver.page_source
 
     def get_course_content(self):        
         self.driver.get(self.url_course)
@@ -78,10 +81,15 @@ class Facilito:
         wait = WebDriverWait(self.driver, 10)
         wait.until(EC.presence_of_element_located((By.XPATH, '//i[@class="f-normal-text material-icons bold"]')))
     
+        self.modules_titles = []
         drop_downs = self.driver.find_elements(By.XPATH, '//i[@class="f-normal-text material-icons bold"]')
+        i = 1
         for drop in drop_downs: 
+            n_title= self.driver.find_element(By.XPATH, f'//ul/div[{i}]/li/header/div/div[1]/div/h4').text
+            self.modules_titles.append(n_title)
             drop.click()
             sleep(3)
+            i += 1
         
         # //div[@class="f-top-16"][1->7]//a
         n_modules =  len(self.driver.find_elements(By.XPATH, '//div[@class="f-top-16"]'))
@@ -99,7 +107,22 @@ class Facilito:
         self.table_of_content['course_name'] = self.course_name
         self.table_of_content['course_id'] = self.course_id
         self.table_of_content['modules'] = self.videos_url_by_modules
-        
+        self.table_of_content['modules_title'] = self.modules_titles
+    
+    def get_article_title(self):
+        article_title = self.driver.find_element(By.XPATH, '//header/h1').text
+        pattern = r'^[ .]|[/<>:\"\\|?*]+|[ .]$'
+        name = re.sub(pattern, ' ',   article_title)
+        return name
+
+    def get_article_url(self):
+        # Encontrar el elemento <li> con la clase "topic-item topic-item--active"
+        li_element = self.driver.find_element(By.XPATH, '//*[@class="topic-item topic-item--active"]')
+        # Obtener el elemento <a> que es el padre del elemento <li>
+        a_element = li_element.find_element(By.XPATH, "..")
+        # Obtener el atributo href del elemento <a>
+        href = a_element.get_attribute("href")
+        return href
 
     def get_m3u8_url(self):
         self.videos_m3u8_by_modules = []
@@ -114,7 +137,8 @@ class Facilito:
                     self.driver.get(url)
                     wait = WebDriverWait(self.driver, 10)
                     wait.until(EC.presence_of_element_located((By.XPATH, '//input[@id="video_id"]')))
-                    video_title = self.get_video_title()
+                    title = self.get_video_title()
+                    video_title = f'{j}. {title}'
                     video_m3u8 = f'{base_url}/hls/{self.course_id}/{self.get_video_id()}/playlist.m3u8'
                     tmp.append((video_title, video_m3u8))
                     print(f'[{j} / {k}][vid] {video_title}')
@@ -125,7 +149,13 @@ class Facilito:
                     wait = WebDriverWait(self.driver, 10)
                     wait.until(EC.presence_of_element_located((By.XPATH, '//input[@id="video_id"]')))
                     # TODO: IMPLEMENT get_article_title()
-                    # article_title = self.get_article_title()
+                    article_title = self.get_article_title()
+                    article_url = self.get_article_url()
+                    dir_path = f'tmp/articulos'
+                    file_path = f'{dir_path}/{j}. {article_title}.txt'
+                    check_path(dir_path)
+                    write_file(file_path, article_url)
+                    #
                     print(f'[{j} / {k}][doc] ...')
                     j = j + 1
 

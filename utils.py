@@ -162,6 +162,23 @@ def check_aria2():
         os.environ['PATH'] = local_platform_path + var_separator + os.environ['PATH']
 
 
+def write_file(file_path: str, content: str) -> None:
+    with open(file_path, 'w', encoding='utf-8') as file:
+        file.write(content)
+
+def check_path(path: str) -> None:
+    """
+    Check if a given path exists and create it if it does not.
+
+    Args:
+        path (str): The path to check and create if necessary.
+
+    Returns:
+        None
+    """
+    if(not os.path.exists(path)):
+        os.makedirs(path, exist_ok=True)
+
 # if __name__ == "__main__":
 #     input_credentials()
     
