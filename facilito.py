@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 import undetected_chromedriver as uc
 
 class Facilito:
@@ -85,7 +86,11 @@ class Facilito:
         drop_downs = self.driver.find_elements(By.XPATH, '//i[@class="f-normal-text material-icons bold"]')
         i = 1
         for drop in drop_downs: 
-            module_titl= self.driver.find_element(By.XPATH, f'//ul/div[{i}]/li/header/div/div[1]/div/h4').text
+            module_titl = ''
+            try: 
+                module_titl = self.driver.find_element(By.XPATH, f'//ul/div[{i}]/li/header/div/div[1]/div/h4').text
+            except NoSuchElementException: 
+                print("element not found") 
             module_title= get_valid_filename(module_titl)
             self.modules_titles.append(module_title)
             drop.click()
