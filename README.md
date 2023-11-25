@@ -1,8 +1,12 @@
-![Repo Banner](https://i.imgur.com/8mIVJuc.png)
+![Repo Banner](https://i.imgur.com/I6zFXds.png)
 
-# Descarga automatizada de Codigo Facilito
+<div align="center">
 
-Descarga automática de los cursos de Codigo Facilito con un script creado en Python utilizando `yt-dlp` como un subproceso. Abajo dejo ejemplos de cómo se debe utilizar y las herramientas necesarias.
+<h1 style="border-bottom: none">
+    <b><a href="#">Codigo Facilito Downloader</a></b>
+</h1>
+
+Descarga automatizada de los cursos de `Codigo Facilito `con un script creado en `Python` utilizando `yt-dlp` como un subproceso.
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/ivansaul/codigo_facilito_downloader)
 ![GitHub stars](https://img.shields.io/github/stars/ivansaul/codigo_facilito_downloader)
@@ -10,24 +14,19 @@ Descarga automática de los cursos de Codigo Facilito con un script creado en Py
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 [![Discord](https://img.shields.io/badge/-Discord-424549?style=social&logo=discord)](https://discord.gg/b72uAVBz6b)
 
-## ⚠️ Avisos Importantes
+</div>
 
-**¡Ups, Algo se Rompió!**
-
-Estamos experimentando algunos problemitas técnicos con el módulo `cookies.py`. 😅 Por desgracia, no tengo mucho tiempo en este momento para abordarlos, pero tengo la intención de lanzar una versión mejorada en unos días.
-
-¡Cualquier contribución será bien recibida! Siéntete libre de hacer un fork, corregir lo que puedas y enviarnos un pull request. ¡La comunidad te lo agradecerá enormemente! 🚀
-
-> **Nota:** Ya se realizaron algunos cambios en la rama [[features/cloudflare]][cloudflare-branch]. 
+---
 
 ## Instalación
 
-El script utiliza **Selenium & Firefox (Gecko driver)**, así que asegúrate de tener instalado **Firefox browser** en tu ordenador.
+El script utiliza **Playwright & Firefox**, así que asegúrate de tener instalado **Firefox browser** en tu ordenador.
 
 ```bash
 git clone https://github.com/ivansaul/codigo_facilito_downloader.git
 cd codigo_facilito_downloader
 pip install -r requirements.txt
+playwright install firefox 
 ```
 
 ### **Linux**
@@ -36,7 +35,7 @@ pip install -r requirements.txt
 
 ```bash
 sudo apt update -y
-sudo apt install firefox firefox-geckodriver ffmpeg aria2 -y
+sudo apt install firefox ffmpeg aria2 -y
 pip install -U yt-dlp
 ```
 
@@ -44,7 +43,7 @@ pip install -U yt-dlp
 
 ```bash
 sudo pacman -Syu
-sudo pacman -S firefox geckodriver ffmpeg aria2  yt-dlp 
+sudo pacman -S firefox ffmpeg aria2  yt-dlp 
 ```
 
 ### **Windows**
@@ -52,12 +51,29 @@ sudo pacman -S firefox geckodriver ffmpeg aria2  yt-dlp
 > **Nota:** Asegurate de tener instalados [Python][python], [Firefox][firefox] , [yt-dlp][yt-dlp] y [ffmpeg][ffmpeg].
 
 ```bash
+# Install Python ...
+# Install ffmpeg ...
+# Install Firefox ...
 pip install -U yt-dlp
 ```
 
 ## Instrucciones
 
-1. Ejecuta el script `facilito.py` para obtener las url de los videos. 
+1. Inicia sesión en la plataforma, ve a cualquier video y copia las cookies que te proporciona la siguiente extensión de Chrome, [Get cookies][cookies]. Pégalas en el archivo `cookies.txt`, ubicado en el directorio raíz del script.
+
+```notepad
+# Netscape HTTP Cookie File
+# http://curl.haxx.se/rfc/cookie_spec.html
+# This is a generated file!  Do not edit.
+
+codigofacilito.com	FALSE	/	TRUE	1699756451	ahoy_visitor	7bd1d2a
+.codigofacilito.com	TRUE	/	TRUE	1686280291	__stripe_mid	58110a2
+.
+.
+.
+```
+
+2. Ejecuta el script `facilito.py` para obtener las url de los videos. 
 
 ```bash
 python facilito.py
@@ -75,32 +91,30 @@ Ingresa la URL del curso a descargar: https://codigofacilito.com/videos/introduc
 .
 ```
 
-2. Finalmente para descargar los vídeos ejecute.
+3. Finalmente para descargar los vídeos ejecute.
 
 ```bash
 python downloader.py
 ```
 
-Por defecto, los videos se descargarán automáticamente en una carpeta con el mismo nombre del curso, con la mejor calidad existente(`best`) y usando `aria2` como gestor de descargas. Para personalizar la descarga puedes usar las siguientes opciones.
+Por defecto, los videos se descargarán automáticamente en una carpeta con el mismo nombre del curso, con la mejor calidad existente(`best`) y usando `yt-dlp` como gestor de descargas. Para personalizar la descarga puedes usar las siguientes opciones.
 
 ```bash
 Usage: python downloader.py [OPTIONS]
 
 Options:
-  -d [yt-dlp|wget|aria2]      Select the external downloader (yt-dlp, wget, or
-                              aria2). Default: aria2.
-  -q [360|480|720|1080|best]  Select the video quality (360, 480, 720, 1080 or
-                              best). Default: best
+  -d [yt-dlp|wget|aria2]      Select the external downloader (yt-dlp, or aria2). Default: yt-dlp.
+  -q [360|480|720|1080|best]  Select the video quality (360, 480, 720, 1080 or best). Default: best
   --help                      Show this message and exit.
 
 Examples: 
   python downloader.py -q 1080
-  python downloader.py -d yt-dlp
+  python downloader.py -d aria2
   python downloader.py -d yt-dlp -q 720
   python downloader.py --help
 ```
 
-> **Nota:** Si por algun motivo se cancela la descarga, vuelve a ejecutar `python downloader.py [OPTIONS]` para que retome la descarga.
+> **Nota:** Si por algun motivo se cancela la descarga, actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py [OPTIONS]` para que retome la descarga.
 
 
 
@@ -110,6 +124,17 @@ Este proyecto se realiza con fines exclusivamente educativos y de aprendizaje. E
 
 No me hago responsable por cualquier mal uso, daño o consecuencia que pueda surgir del uso de este proyecto. Es responsabilidad del usuario utilizarlo de manera adecuada y dentro de los límites legales y éticos.
 
+
+# Descubre Más
+
+Aquí tienes una lista de algunos de mis otros repositorios. ¡Échales un vistazo!
+
+[![Bookmark Style Card](https://svg.bookmark.style/api?url=https://github.com/ivansaul/codigo_facilito_downloader&mode=light&style=horizontal)](https://github.com/ivansaul/codigo_facilito_downloader)
+[![Bookmark Style Card](https://svg.bookmark.style/api?url=https://github.com/ivansaul/platzi-downloader&mode=light&style=horizontal)](https://github.com/ivansaul/platzi-downloader)
+[![Bookmark Style Card](https://svg.bookmark.style/api?url=https://github.com/ivansaul/terabox_downloader&mode=light&style=horizontal)](https://github.com/ivansaul/terabox_downloader)
+[![Bookmark Style Card](https://svg.bookmark.style/api?url=https://github.com/ivansaul/personal-portfolio&mode=light&style=horizontal)](https://github.com/ivansaul/personal-portfolio)
+[![Bookmark Style Card](https://svg.bookmark.style/api?url=https://github.com/ivansaul/flutter_todo_app&mode=light&style=horizontal)](https://github.com/ivansaul/flutter_todo_app)
+[![Bookmark Style Card](https://svg.bookmark.style/api?url=https://github.com/ivansaul/Flutter-UI-Kit&mode=light&style=horizontal)](https://github.com/ivansaul/Flutter-UI-Kit)
 
 
 [cookies]: https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc/related

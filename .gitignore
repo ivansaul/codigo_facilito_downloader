@@ -3,10 +3,11 @@
 *.mp4*
 *.mkv
 *.zip
-*.txt
 node_modules/
 bin/
 test/
+downloads/
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
