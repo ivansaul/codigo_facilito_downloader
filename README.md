@@ -26,6 +26,7 @@ El script utiliza **Playwright & Firefox**, así que asegúrate de tener instala
 git clone https://github.com/ivansaul/codigo_facilito_downloader.git
 cd codigo_facilito_downloader
 pip install -r requirements.txt
+playwright install-deps
 playwright install firefox 
 ```
 

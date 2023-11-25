@@ -1,3 +1,4 @@
+yt-dlp
 click == 8.1.7
 requests == 2.31.0
 playwright == 1.39.0
