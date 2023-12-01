@@ -115,6 +115,14 @@ Examples:
   python downloader.py --help
 ```
 
+## Bootcamp (Improve)
+Ejecutar el script `bootcamp.py` para obtener la información del bootcamp.
+Se guardara en el archivo `bootcamp.json` luego puedes descargarlas siguiendo los pasos de la sección anterior.
+```bash
+python bootcamp.py
+Enter bootcamp url ex: https://codigofacilito.com/programas/python-avanzado
+```
+
 > **Nota:** Si por algun motivo se cancela la descarga, actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py [OPTIONS]` para que retome la descarga.
 
 
