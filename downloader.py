@@ -32,7 +32,7 @@ class Downloader:
         copy_file(self.cookies, self.cookies_copy)
         
         if (ext_dwl =='yt-dlp'):
-            command = ['yt-dlp', '-f', self.format_selection, '--cookies', self.cookies_copy, '-o', f'{file_path}.%(ext)s', url]
+            command = ['yt-dlp', '-f', self.format_selection, '--cookies', self.cookies_copy, '-o', f'{file_path}.%(ext)s', '-N', '10', url]
         elif (ext_dwl =='aria2'):
             command = ['yt-dlp', '-f', self.format_selection, '--cookies', self.cookies_copy, '-o', f'{file_path}.%(ext)s', '--external-downloader', 'aria2c', '--external-downloader-args', '-s 10 -x 10 -k 1M', url]
         subprocess.run(command, check=True)
