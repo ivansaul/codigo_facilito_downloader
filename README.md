@@ -49,7 +49,8 @@ sudo pacman -S firefox ffmpeg aria2  yt-dlp
 
 ### **Windows**
 
-> **Nota:** Asegurate de tener instalados [Python][python], [Firefox][firefox] , [yt-dlp][yt-dlp] y [ffmpeg][ffmpeg].
+> [!IMPORTANT]
+> Asegurate de tener instalados [Python][python], [Firefox][firefox] , [yt-dlp][yt-dlp] y [ffmpeg][ffmpeg].
 
 ```bash
 # Install Python ...
@@ -115,6 +116,12 @@ Examples:
   python downloader.py --help
 ```
 
+> [!CAUTION]
+> Se recomienda utilizar `yt-dlp` en lugar de `aria2` debido a problemas experimentados con este último.
+
+> [!TIP]
+> Si por algun motivo se cancela la descarga. Solo actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py [OPTIONS]` para que retome la descarga.
+
 ## Bootcamp (Improve)
 Ejecutar el script `bootcamp.py` para obtener la información del bootcamp.
 Se guardara en el archivo `bootcamp.json` luego puedes descargarlas siguiendo los pasos de la sección anterior.
@@ -123,16 +130,11 @@ python bootcamp.py
 Enter bootcamp url ex: https://codigofacilito.com/programas/python-avanzado
 ```
 
-> **Nota:** Si por algun motivo se cancela la descarga, actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py [OPTIONS]` para que retome la descarga.
-
-
-
 # **Aviso de Uso**
 
 Este proyecto se realiza con fines exclusivamente educativos y de aprendizaje. El código proporcionado se ofrece "tal cual" sin ninguna garantía de su funcionamiento o idoneidad para ningún propósito específico.
 
 No me hago responsable por cualquier mal uso, daño o consecuencia que pueda surgir del uso de este proyecto. Es responsabilidad del usuario utilizarlo de manera adecuada y dentro de los límites legales y éticos.
-
 
 # Descubre Más
 
