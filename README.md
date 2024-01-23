@@ -81,7 +81,7 @@ codigofacilito.com	FALSE	/	TRUE	1699756451	ahoy_visitor	7bd1d2a
 python facilito.py
 ```
 
-El script te pedira tu correo y contraseña y la url del curso a descargar (la url puede ser de cualquier video del curso)
+El script te pedira tu correo y contraseña y la url del curso a descargar (la url debe ser de cualquier video del curso)
 
 ```bash
 Ingresa tus credenciales de Codigo Facilito
@@ -92,6 +92,9 @@ Ingresa la URL del curso a descargar: https://codigofacilito.com/videos/introduc
 .
 .
 ```
+
+> [!IMPORTANT]
+> La url debe ser de un video cualquiera del curso, como se muestra en el ejemplo `https:.../videos/...`
 
 3. Finalmente para descargar los vídeos ejecute.
 
