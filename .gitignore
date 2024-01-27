@@ -8,6 +8,7 @@ bin/
 test/
 downloads/
 .DS_Store
+nbs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

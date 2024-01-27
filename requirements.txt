@@ -2,3 +2,5 @@ yt-dlp
 click == 8.1.7
 requests == 2.31.0
 playwright == 1.39.0
+pydantic == 2.5.3
+pytest == 7.4.4
