@@ -5,7 +5,6 @@
 *.zip
 node_modules/
 bin/
-test/
 downloads/
 .DS_Store
 nbs/
