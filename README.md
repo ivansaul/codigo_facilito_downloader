@@ -125,6 +125,38 @@ Examples:
 > [!TIP]
 > Si por algun motivo se cancela la descarga. Solo actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py [OPTIONS]` para que retome la descarga.
 
+## Descargas en Lote
+Para descargar en lote debes generar el archivo `data.json` siguiendo el paso 2 de las instrucciones, luego debes copiar el archivo data.json a la carpeta data (si no existe creala). 
+El formato seria el siguiente:
+```
+.
+└── codigo-facilito-downloader/
+    ├── facilito.py
+    ├── bulk-downloader.py
+    ├── data.json <-- Generado por facilito.py
+    └── data <-- Carpeta para descargar en lote/
+        ├── 1. data.json <-- Taller para crear un chat con Flutter y Firebase
+        ├── 2. data.json <-- Taller de introducción a Jetpack compose
+        └── 3. data.json <-- Taller Práctico - Clases del Bootcamp Next.js
+```
+Utiliza el formato numerado para dar prioridad al curso  que deseas bajar primero. El script buscará la carpeta "data" y recorrerá todos los archivos `.json` que se encuentren en el.
+###  Ejecutando Bulk Downloader
+Para descargar solo debes ejecutar el comando:
+```bash
+Usage: python bulk-downloader.py [OPTIONS]
+
+Options:
+  -d [yt-dlp|wget|aria2]      Select the external downloader (yt-dlp, or aria2). Default: yt-dlp.
+  -q [360|480|720|1080|best]  Select the video quality (360, 480, 720, 1080 or best). Default: best
+  --help                      Show this message and exit.
+
+Examples: 
+  python bulk-downloader.py -q 1080
+  python bulk-downloader.py -d aria2
+  python bulk-downloader.py -d yt-dlp -q 720
+  python bulk-downloader.py --help
+```
+
 ## Bootcamp (Improve)
 Ejecutar el script `bootcamp.py` para obtener la información del bootcamp.
 Se guardara en el archivo `bootcamp.json` luego puedes descargarlas siguiendo los pasos de la sección anterior.
