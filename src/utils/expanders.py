@@ -1,13 +1,16 @@
-"""Expand all modules."""
+"""
+Expanders utilities for Facilito API
+"""
+
 import re
 
 from playwright.sync_api import Page
 
-from src.errors import FacilitoCourseSectionNotExpandedError
+from src.errors import CourseError
 
 
 def expand_course_sections(page: Page) -> None:
-    """Expand all sections in the course by simulating a click on each module's header.
+    """Expand all sections in the course by simulating a click on each section's header.
 
     This function searches for all <form> elements with a class matching 'reveal-form-NNNN'
     and an action attribute formatted as '/blocks/NNNN.json'. It then extracts the value
@@ -34,13 +37,13 @@ def expand_course_sections(page: Page) -> None:
         action_value = section.get_attribute("action")
 
         if action_value is None:
-            raise FacilitoCourseSectionNotExpandedError("Action value not found")
+            raise CourseError("Action value not found")
 
         # get block container match -> match(NNNN)
         match_block_container = re.search(r"\d+", action_value)
 
         if match_block_container is None:
-            raise FacilitoCourseSectionNotExpandedError("Block container not found")
+            raise CourseError("Block container not found")
 
         # get block container value -> NNNN
         block_container = match_block_container.group()

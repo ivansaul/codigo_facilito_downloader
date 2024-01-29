@@ -2,7 +2,7 @@
 
 from playwright.sync_api import sync_playwright
 
-from src.errors import FacilitoApiError
+from src.errors import ClientError
 from src.models.course import Course
 from src.models.video import Video
 from src.utils import collectors
@@ -40,21 +40,21 @@ class FacilitoApi:
     def playwright(self):
         """The playwright instance used for data scraping."""
         if not hasattr(self, "_playwright"):
-            raise FacilitoApiError("FacilitoApi must be used as a context manager.")
+            raise ClientError("FacilitoApi must be used as a context manager.")
         return self._playwright
 
     @property
     def browser(self):
         """The browser instance used for data scraping."""
         if not hasattr(self, "_browser"):
-            raise FacilitoApiError("FacilitoApi must be used as a context manager.")
+            raise ClientError("FacilitoApi must be used as a context manager.")
         return self._browser
 
     @property
     def context(self):
         """The context instance used for data scraping."""
         if not hasattr(self, "_context"):
-            raise FacilitoApiError("FacilitoApi must be used as a context manager.")
+            raise ClientError("FacilitoApi must be used as a context manager.")
         return self._context
 
     def video(self, url: str) -> Video:
