@@ -10,6 +10,9 @@ LOGGING_FORMAT = (
 )
 LOGGING_DATEFORMAT = "%H:%M:%S"
 
+CLI_LOGGING_LEVEL = logging.DEBUG
+CLI_LOGGING_FILE = "cli.log"
+
 
 def _configure_logger():
     """Configure logger"""
@@ -33,5 +36,23 @@ def _configure_logger():
     return _logger
 
 
+def _configure_cli_logger():
+    """Configure cli logger"""
+
+    file = logging.FileHandler(CLI_LOGGING_FILE)
+    file.setLevel(CLI_LOGGING_LEVEL)
+    file_format = logging.Formatter(LOGGING_FORMAT)
+    file_format.datefmt = LOGGING_DATEFORMAT
+    file.setFormatter(file_format)
+
+    _logger = logging.getLogger("cli")
+    _logger.setLevel(CLI_LOGGING_LEVEL)
+    _logger.addHandler(file)
+    return _logger
+
+
 # call configure_logger() to configure logger
 logger = _configure_logger()
+
+# call configure_cli_logger() to configure cli logger
+cli_logger = _configure_cli_logger()
