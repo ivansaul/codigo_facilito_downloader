@@ -9,6 +9,7 @@ bin/
 downloads/
 .DS_Store
 nbs/
+!.vscode/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

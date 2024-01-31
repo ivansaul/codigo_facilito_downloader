@@ -1,0 +1,40 @@
+{
+    "cSpell.words": [
+        "APKAIAHLS",
+        "articulos",
+        "bestaudio",
+        "bootcamp",
+        "Codigo",
+        "codigofacilito",
+        "Consts",
+        "cookiefile",
+        "curso",
+        "descargar",
+        "facilitopy",
+        "ivansaul",
+        "KHTML",
+        "levelname",
+        "mhtml",
+        "noprogress",
+        "outtmpl",
+        "pydantic",
+        "secho",
+        "tprint",
+        "typer"
+    ],
+    "[python]": {
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+        },
+        "editor.formatOnSave": true
+    },
+    "isort.args": [
+        "--profile",
+        "black"
+    ],
+    "python.testing.pytestArgs": [
+        "test"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+}
