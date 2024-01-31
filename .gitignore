@@ -1,4 +1,5 @@
 # Custom
+*.txt
 *.json
 *.mp4*
 *.mkv
