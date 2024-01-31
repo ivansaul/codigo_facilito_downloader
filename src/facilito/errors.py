@@ -81,3 +81,9 @@ class CourseError(Exception):
     of some internal error (mostly because the course
     is not available anymore).
     """
+
+
+class DownloadError(Exception):
+    """
+    Downloading video failed.
+    """

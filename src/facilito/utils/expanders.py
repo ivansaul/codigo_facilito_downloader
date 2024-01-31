@@ -6,7 +6,7 @@ import re
 
 from playwright.sync_api import Page
 
-from src.errors import CourseError
+from ..errors import CourseError
 
 
 def expand_course_sections(page: Page) -> None:

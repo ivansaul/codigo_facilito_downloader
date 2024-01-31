@@ -1,12 +1,16 @@
 """Collectors for Facilito API"""
 
+from typing import Optional
+
 from playwright.sync_api import Page
 
-from src.errors import VideoError
-from src.models.course import Course, CourseSection
-from src.models.video import MediaType, Video
-from src.utils import expanders
-from src.utils.logger import logger
+from .. import consts
+from ..errors import CourseError, URLError, VideoError
+from ..helpers import is_course_url, is_video_url
+from ..models.course import Course, CourseSection
+from ..models.video import MediaType, Video
+from ..utils import expanders
+from ..utils.logger import logger
 
 
 def get_video_detail_sync(url: str, page: Page) -> Video:
@@ -20,32 +24,42 @@ def get_video_detail_sync(url: str, page: Page) -> Video:
         Video: An instance of the Video model with the retrieved details.
     """
 
+    if not is_video_url(url):
+        error_message = f"[VIDEO] Invalid video URL: {url}"
+        logger.error(error_message)
+        raise URLError(error_message)
+
     page.goto(url=url, wait_until=None)
 
     # search video title
-    title = page.locator(
-        "h1[class='ibm bold-600 no-margin f-text-22'], h1[class='ibm bold-600 no-margin f-text-48']"
-    ).inner_text()
+    try:
+        title = page.locator(
+            "h1[class='ibm bold-600 no-margin f-text-22'], h1[class='ibm bold-600 no-margin f-text-48']"
+        ).inner_text()
+    except Exception as e:
+        error_message = f"[VIDEO] title not found: {url}"
+        logger.error(error_message)
+        raise VideoError(error_message) from e
 
     video_id = page.locator("input[name='video_id']").first.get_attribute("value")
     course_id = page.locator("input[name='course_id']").get_attribute("value")
 
     if video_id is None or course_id is None:
-        raise VideoError("Video ID or Course ID not found")
+        error_message = f"[VIDEO] id not found: {url}"
+        logger.error(error_message)
+        raise VideoError(error_message)
 
     # get video m3u8 url
     base_m3u8_url = "https://video-storage.codigofacilito.com"
     m3u8_url = f"{base_m3u8_url}/hls/{course_id}/{video_id}/playlist.m3u8"
 
     # check media type
-    media_type: MediaType = None
+    media_type: Optional[MediaType] = None
 
     if "/videos/" in url:
-        media_type = "streaming"
+        media_type = MediaType.STREAMING
     if "/articulos/" in url:
-        media_type = "reading"
-    if media_type is None:
-        raise VideoError("Media type not found")
+        media_type = MediaType.READING
 
     return Video(
         id=video_id,
@@ -53,9 +67,11 @@ def get_video_detail_sync(url: str, page: Page) -> Video:
         m3u8_url=m3u8_url,
         title=title,
         media_type=media_type,
+        description=None,
     )
 
 
+# TODO: improve this function, handles more error cases 👇
 def get_course_detail_sync(url: str, page: Page) -> Course:
     """
     Retrieves detailed information about a course from a given URL.
@@ -67,6 +83,11 @@ def get_course_detail_sync(url: str, page: Page) -> Course:
     Returns:
         Course: An object containing the course details."""
 
+    if not is_course_url(url):
+        error_message = f"[COURSE] Invalid course URL: {url}"
+        logger.error(error_message)
+        raise URLError(error_message)
+
     page.goto(url=url, wait_until=None)
 
     # expand collapsed sections
@@ -76,7 +97,12 @@ def get_course_detail_sync(url: str, page: Page) -> Course:
     title = page.title()
 
     # get course sections
-    sections = _get_sections(page)
+    try:
+        sections = _get_sections(page)
+    except Exception as e:
+        error_message = f"[COURSE] an error occurred: {url}"
+        logger.error(error_message)
+        raise CourseError(error_message) from e
 
     course = Course(
         url=url,
@@ -87,6 +113,7 @@ def get_course_detail_sync(url: str, page: Page) -> Course:
     return course
 
 
+# TODO: improve this function, handles more error cases 👇
 def _get_sections(page: Page) -> list[CourseSection]:
     """Get course sections from a page.
 
@@ -117,7 +144,7 @@ def _get_sections(page: Page) -> list[CourseSection]:
 
         a_tags = div.query_selector_all("a")
         href_values = [a.get_attribute("href") for a in a_tags]
-        all_video_urls = [f"https://codigofacilito.com{href}" for href in href_values]
+        all_video_urls = [f"{consts.BASE_URL}{href}" for href in href_values]
 
         logger.debug("This section has %s videos", len(all_video_urls))
 
