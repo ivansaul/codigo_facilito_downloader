@@ -43,6 +43,7 @@ class Video(BaseModel):
 
     def download(
         self,
+        prefix_name: str = "",
         dir_path: str = consts.DOWNLOADS_DIR,
         quality: Quality = Quality.BEST,
         cookiefile: str = consts.COOKIES_FILE,
@@ -62,7 +63,7 @@ class Video(BaseModel):
         yt_dlp_params = {
             "format": dlp_format,
             "cookiefile": cookiefile,
-            "outtmpl": f"{dir_path}/{video_name}.%(ext)s",
+            "outtmpl": f"{dir_path}/{prefix_name}{video_name}.%(ext)s",
             "logger": YoutubeDLLogger(),
             "n_threads": 10,
             "retries": 5,
