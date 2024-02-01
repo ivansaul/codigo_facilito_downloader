@@ -1,22 +1,33 @@
-![Repo Banner](https://i.imgur.com/I6zFXds.png)
-
+<div align="center">
+    <img width="150" src="https://i.imgur.com/dca7pcI.png" alt="Coco Logo">
+</div>
+<div align="center">
+    <img width="350" src="https://i.imgur.com/tZhUf6Y.png" alt="Coco Logo">
+</div>
 <div align="center">
 
 <h1 style="border-bottom: none">
-    <b><a href="#">Codigo Facilito Downloader</a></b>
+    <b><a href="https://github.com/ivansaul/codigo_facilito_downloader">Codigo Facilito Downloader</a></b>
 </h1>
 
-Descarga automatizada de los cursos de `Codigo Facilito `con un script creado en `Python` utilizando `yt-dlp` como un subproceso.
+Descarga automatizada de los cursos de `Codigo Facilito `<br />
+con un script creado en `Python` utilizando `yt-dlp` como un subproceso.
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/ivansaul/codigo_facilito_downloader)
 ![GitHub stars](https://img.shields.io/github/stars/ivansaul/codigo_facilito_downloader)
 ![GitHub forks](https://img.shields.io/github/forks/ivansaul/codigo_facilito_downloader)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
-[![Discord](https://img.shields.io/badge/-Discord-424549?style=social&logo=discord)](https://discord.gg/tDvybtJ7y9)
+
+<a href="https://discord.gg/tDvybtJ7y9">
+    <img alt="Discord Server" height="50" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/social/discord-plural_vector.svg">
+</a>
 
 </div>
 
 ---
+
+![coco-demo](https://github.com/ivansaul/codigo_facilito_downloader/assets/15005581/b3029dda-c5ab-4cd9-97d3-acc61f3be3a0)
+
 
 ## Instalación
 
