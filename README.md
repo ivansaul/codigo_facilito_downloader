@@ -26,7 +26,7 @@ El script utiliza **Playwright & Firefox & ffmpeg**, así que asegúrate de tene
 
 **En Ubuntu:**
 
-```bash
+```console
 # Actualiza los repositorios
 sudo apt update -y
 # Instalar firefox, ffmpeg y pipx
@@ -37,7 +37,7 @@ pipx ensurepath
 
 **En Archlinux:**
 
-```bash
+```console
 # Actualiza los repositorios
 sudo pacman -Syu
 # Instalar firefox, ffmpeg y pipx
@@ -51,7 +51,7 @@ pipx ensurepath
 > [!IMPORTANT]
 > Los pasos que se muestran, son a través de [Scoop][scoop].
 
-```bash
+```console
 # Instalar Python
 scoop bucket add main
 scoop install python
@@ -70,7 +70,7 @@ pipx ensurepath
 
 ### **MacOS**
 
-```bash
+```console
 # Actualiza los repositorios
 brew update
 # Instalar firefox, ffmpeg y pipx
@@ -83,7 +83,7 @@ pipx ensurepath
 
 1. Clona el repositorio
 
-```bash
+```console
 # Clone el repositorio
 git clone https://github.com/ivansaul/codigo_facilito_downloader.git
 # Ir al directorio
@@ -92,7 +92,7 @@ cd codigo_facilito_downloader
 
 2. Instala sus dependencias y activa el entorno virtual
 
-```bash
+```console
 # Instala poetry
 pipx install poetry
 # Instala las dependencias
@@ -114,7 +114,7 @@ Confirm your password?: facilito123
 
 4. Descarga un video o un curso
 
-```bash
+```console
 $ python coco.py download
 
 Url: https://codigofacilito.com/cursos/flutter-profesional
@@ -124,7 +124,7 @@ Quality (best, 1080, 720, 480, 360, worst) [best]: best
 ✓ Done!
 ```
 
-```bash
+```console
 $ python coco.py download
 
 Url: https://codigofacilito.com/videos/icon
