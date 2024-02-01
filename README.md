@@ -20,115 +20,135 @@ Descarga automatizada de los cursos de `Codigo Facilito `con un script creado en
 
 ## Instalación
 
-El script utiliza **Playwright & Firefox**, así que asegúrate de tener instalado **Firefox browser** en tu ordenador.
-
-```bash
-git clone https://github.com/ivansaul/codigo_facilito_downloader.git
-cd codigo_facilito_downloader
-pip install -r requirements.txt
-playwright install-deps
-playwright install firefox 
-```
+El script utiliza **Playwright & Firefox & ffmpeg**, así que asegúrate de tener instalados previamente en tu ordenador.
 
 ### **Linux**
 
 **En Ubuntu:**
 
 ```bash
+# Actualiza los repositorios
 sudo apt update -y
-sudo apt install firefox ffmpeg aria2 -y
-pip install -U yt-dlp
+# Instalar firefox, ffmpeg y pipx
+sudo apt install firefox ffmpeg pipx -y
+# Agregar pipx al PATH
+pipx ensurepath
 ```
 
 **En Archlinux:**
 
 ```bash
+# Actualiza los repositorios
 sudo pacman -Syu
-sudo pacman -S firefox ffmpeg aria2  yt-dlp 
+# Instalar firefox, ffmpeg y pipx
+sudo pacman -S firefox ffmpeg python-pipx
+# Agregar pipx al PATH
+pipx ensurepath
 ```
 
 ### **Windows**
 
-> [!IMPORTANT]
-> Asegurate de tener instalados [Python][python], [Firefox][firefox] , [yt-dlp][yt-dlp] y [ffmpeg][ffmpeg].
+[!IMPORTANT]
+> Los pasos que se muestran, son a través de [Scoop][scoop].
 
 ```bash
-# Install Python ...
-# Install ffmpeg ...
-# Install Firefox ...
-pip install -U yt-dlp
+# Instalar Python
+scoop bucket add main
+scoop install python
+# Instalar Firefox
+scoop bucket add extras
+scoop install extras/firefox
+# Instalar ffmpeg
+scoop bucket add main
+scoop install main/ffmpeg
+# Instalar pipx
+scoop bucket add main
+scoop install main/pipx
+# Agrega pipx al PATH
+pipx ensurepath
+```
+
+### **MacOS**
+
+```bash
+# Actualiza los repositorios
+brew update
+# Instalar firefox, ffmpeg y pipx
+brew install firefox ffmpeg pipx
+# Agregar pipx al PATH
+pipx ensurepath
 ```
 
 ## Instrucciones
 
-1. Inicia sesión en la plataforma, ve a cualquier video y copia las cookies que te proporciona la siguiente extensión de Chrome, [Get cookies][cookies]. Pégalas en el archivo `cookies.txt`, ubicado en el directorio raíz del script.
-
-```notepad
-# Netscape HTTP Cookie File
-# http://curl.haxx.se/rfc/cookie_spec.html
-# This is a generated file!  Do not edit.
-
-codigofacilito.com	FALSE	/	TRUE	1699756451	ahoy_visitor	7bd1d2a
-.codigofacilito.com	TRUE	/	TRUE	1686280291	__stripe_mid	58110a2
-.
-.
-.
-```
-
-2. Ejecuta el script `facilito.py` para obtener las url de los videos. 
+1. Clona el repositorio
 
 ```bash
-python facilito.py
+# Clone el repositorio
+git clone https://github.com/ivansaul/codigo_facilito_downloader.git
+# Ir al directorio
+cd codigo_facilito_downloader
 ```
 
-El script te pedira tu correo y contraseña y la url del curso a descargar (la url puede ser de cualquier video del curso)
+2. Instala sus dependencias y activa el entorno virtual
 
 ```bash
-Ingresa tus credenciales de Codigo Facilito
-Ingresa tu e-mail: tu@email.com
-Ingresa tu contraseña: tu_comtraseña
-Ingresa la URL del curso a descargar: https://codigofacilito.com/videos/introduccion-al-curso-profesional-de-backend
-.
-.
-.
+# Instala poetry
+pipx install poetry
+# Instala las dependencias
+poetry install
+# Activa el entorno virtual
+poetry shell
 ```
 
-3. Finalmente para descargar los vídeos ejecute.
+3. Iniciar sesión a través de la consola con tus credenciales de Codigo Facilito.
+
+```console
+$ python coco.py login
+
+What's your email?: test@email.com    
+Confirm your email?: test@email.com
+What's your password?: facilito123
+Confirm your password?: facilito123
+```
+
+4. Descarga un video o un curso
 
 ```bash
-python downloader.py
-```
+$ python coco.py download
 
-Por defecto, los videos se descargarán automáticamente en una carpeta con el mismo nombre del curso, con la mejor calidad existente(`best`) y usando `yt-dlp` como gestor de descargas. Para personalizar la descarga puedes usar las siguientes opciones.
+Url: https://codigofacilito.com/cursos/flutter-profesional
+Quality (best, 1080, 720, 480, 360, worst) [best]: best
+⠹ Processing...
+⠹ Downloading...
+✓ Done!
+```
 
 ```bash
-Usage: python downloader.py [OPTIONS]
+$ python coco.py download
 
-Options:
-  -d [yt-dlp|wget|aria2]      Select the external downloader (yt-dlp, or aria2). Default: yt-dlp.
-  -q [360|480|720|1080|best]  Select the video quality (360, 480, 720, 1080 or best). Default: best
-  --help                      Show this message and exit.
-
-Examples: 
-  python downloader.py -q 1080
-  python downloader.py -d aria2
-  python downloader.py -d yt-dlp -q 720
-  python downloader.py --help
+Url: https://codigofacilito.com/videos/icon
+Quality (best, 1080, 720, 480, 360, worst) [best]: 480
+⠹ Processing...
+⠹ Downloading...
+⠹ Icon  ...
+✓ Done!
 ```
 
-> [!CAUTION]
-> Se recomienda utilizar `yt-dlp` en lugar de `aria2` debido a problemas experimentados con este último.
+> [!IMPORTANT]
+> Por defecto, el script descarga los videos con la mejor calidad disponible(best), pero puedes elegir entre [worst, 360, 480, 720, 1080 o best].
+
+> [!IMPORTANT]
+> Revisa los logs(`cli.log`) de la consola para ver un registro de los videos que por algún motivo no se pudieron descargar.
 
 > [!TIP]
-> Si por algun motivo se cancela la descarga. Solo actuliza las `cookies.txt` y vuelve a ejecutar `python downloader.py [OPTIONS]` para que retome la descarga.
+> Si por algun motivo se cancela la descarga. Puedes retomarlo con el comando `python coco.py download`
 
-## Bootcamp (Improve)
-Ejecutar el script `bootcamp.py` para obtener la información del bootcamp.
-Se guardara en el archivo `bootcamp.json` luego puedes descargarlas siguiendo los pasos de la sección anterior.
-```bash
-python bootcamp.py
-Enter bootcamp url ex: https://codigofacilito.com/programas/python-avanzado
-```
+## Contribuidores
+
+<a href="https://github.com/ivansaul/codigo_facilito_downloader/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ivansaul/codigo_facilito_downloader" />
+</a>
 
 # **Aviso de Uso**
 
@@ -159,3 +179,4 @@ Aquí tienes una lista de algunos de mis otros repositorios. ¡Échales un vista
 [demo]: https://youtu.be/GbQwB0hYvQU
 [ffmpeg-win]:https://youtu.be/0zN9oZ98ZgE
 [cloudflare-branch]:https://github.com/ivansaul/codigo_facilito_downloader/tree/feature/cloudflare
+[scoop]:https://scoop.sh/
