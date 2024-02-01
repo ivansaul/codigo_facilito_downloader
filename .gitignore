@@ -1,13 +1,15 @@
 # Custom
+*.txt
 *.json
 *.mp4*
 *.mkv
 *.zip
 node_modules/
 bin/
-test/
 downloads/
 .DS_Store
+nbs/
+!.vscode/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
