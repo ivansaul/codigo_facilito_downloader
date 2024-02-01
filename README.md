@@ -60,7 +60,8 @@ pipx ensurepath
 ### **Windows**
 
 > [!IMPORTANT]
-> Los pasos que se muestran, son a través de [Scoop][scoop].
+> Los pasos que se muestran, son a través del gestor de paquetes para Windows [(Scoop)][scoop] `->` [(Ver Tutorial)][scoop-tutorial].
+> Tambien puedes instalar las dependencias de la forma tradicional, descargando uno a uno los installadores. Pero la forma mas facil y recomendada es usar el gestor de paquetes.
 
 ```console
 # Instalar Python
@@ -211,3 +212,4 @@ Aquí tienes una lista de algunos de mis otros repositorios. ¡Échales un vista
 [ffmpeg-win]:https://youtu.be/0zN9oZ98ZgE
 [cloudflare-branch]:https://github.com/ivansaul/codigo_facilito_downloader/tree/feature/cloudflare
 [scoop]:https://scoop.sh/
+[scoop-tutorial]:https://youtu.be/sZS7mG_zhaw?si=Yq7ZKl5k5luzNeVr
