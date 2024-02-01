@@ -95,10 +95,13 @@ cd codigo_facilito_downloader
 ```console
 # Instala poetry
 pipx install poetry
-# Instala las dependencias
-poetry install
 # Activa el entorno virtual
 poetry shell
+# Instala las dependencias
+poetry install
+# Instalar playwright dependencies
+playwright install-deps
+playwright install firefox
 ```
 
 3. Iniciar sesión a través de la consola con tus credenciales de Codigo Facilito.
@@ -120,6 +123,23 @@ $ python coco.py download
 Url: https://codigofacilito.com/cursos/flutter-profesional
 Quality (best, 1080, 720, 480, 360, worst) [best]: best
 ⠹ Processing...
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Curso profesional de Flutter ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+└──────────────────────────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ Sections                                  ┃ Videos ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ 1. Introducción                           │ 9      │
+│ 2. Widgets Básicos                        │ 11     │
+│ 3. Navegación                             │ 5      │
+│ 4. Multi-child                            │ 4      │
+│ 5. Listview, gridview, ítems y utilidades │ 10     │
+│ 6. Formulario                             │ 8      │
+│ 7. Menús                                  │ 4      │
+│ Diseño                                    │ 5      │
+└───────────────────────────────────────────┴────────┘
+Would you like to download? [y/N]: y
 ⠹ Downloading...
 ✓ Done!
 ```
