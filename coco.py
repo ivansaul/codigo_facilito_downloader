@@ -109,10 +109,10 @@ def download(
 
             # iterate over sections
             course_sections = course.sections
-            for section in course_sections:
+            for pfx_s, section in enumerate(course_sections, start=1):
                 section_title = helpers.clean_string(section.title)
                 section_videos = section.videos_url
-                for idx, video_url in enumerate(section_videos, start=1):
+                for pfx_v, video_url in enumerate(section_videos, start=1):
                     try:
                         video = client.video(video_url)
                     except VideoError as e:
@@ -127,13 +127,11 @@ def download(
                             tprint("⠹", video.title, " ...")
                             client.refresh_cookies()
                             # Download directory path
-                            dir_path = (
-                                f"{consts.DOWNLOADS_DIR}/{course_title}/{section_title}"
-                            )
+                            dir_path = f"{consts.DOWNLOADS_DIR}/{course_title}/{pfx_s:02d}. {section_title}"
                             video.download(
                                 quality=quality,
                                 dir_path=dir_path,
-                                prefix_name=f"{idx:02d}. ",
+                                prefix_name=f"{pfx_v:02d}. ",
                             )
                         except DownloadError:
                             if attempt < max_retries:
