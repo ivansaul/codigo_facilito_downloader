@@ -48,7 +48,7 @@ pipx ensurepath
 
 ### **Windows**
 
-[!IMPORTANT]
+> [!IMPORTANT]
 > Los pasos que se muestran, son a través de [Scoop][scoop].
 
 ```bash
