@@ -1,7 +1,9 @@
 """
 Video download model
 """
+
 import time
+
 from ..errors import DownloadError
 
 
@@ -10,17 +12,17 @@ class YoutubeDLLogger:
 
     def debug(self, msg):
         """Debug message"""
-        #print(msg)
+        # print(msg)
         pass
 
     def info(self, msg):
         """Info message"""
-        #print(msg)
+        # print(msg)
         pass
 
     def warning(self, msg):
         """Warning message"""
-        #print(msg)
+        # print(msg)
         pass
 
     def error(self, msg):
@@ -34,12 +36,17 @@ class YoutubeDLLogger:
             """Progress callback"""
             if d["status"] == "finished":
                 print("Done downloading")
-                filename=d['filename']
+                filename = d["filename"]
                 print(file_name)
             elif d["status"] == "downloading":
                 # print(f"\rDownloading... progress: {d['_percent_str']}", end="")
-                print(f"\rDownloading... {file_name}. {d['_default_template']} ", end="", flush=True)
+                print(
+                    f"\rDownloading... {file_name}. {d['_default_template']} ",
+                    end="",
+                    flush=True,
+                )
                 time.sleep(0.1)
             elif d["status"] == "error":
                 print(f"Error during download: {d['error']}")
+
         return on_progress

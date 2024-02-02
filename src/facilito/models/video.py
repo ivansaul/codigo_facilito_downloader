@@ -68,7 +68,9 @@ class Video(BaseModel):
             "n_threads": 10,
             "retries": 5,
             # TODO: implement custom parser for progress bar
-            "progress_hooks": [YoutubeDLLogger.wrapper_hook(file_name=f"{prefix_name}{video_name}")],
+            "progress_hooks": [
+                YoutubeDLLogger.wrapper_hook(file_name=f"{prefix_name}{video_name}")
+            ],
             "quiet": True,
             # "noprogress": False,
         }
