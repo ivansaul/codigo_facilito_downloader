@@ -12,6 +12,7 @@
 		"ms-python.black-formatter",
 		"ms-python.mypy-type-checker",
 		"streetsidesoftware.code-spell-checker",
+		"streetsidesoftware.code-spell-checker-spanish",
 		"Gruntfuggly.todo-tree",
 		"tamasfe.even-better-toml",
 		"ms-python.vscode-pylance",
