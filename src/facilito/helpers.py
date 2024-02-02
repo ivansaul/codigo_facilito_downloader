@@ -184,5 +184,5 @@ def is_ffmpeg_installed() -> bool:
             stderr=subprocess.DEVNULL,
         )
         return True
-    except subprocess.CalledProcessError:
+    except FileNotFoundError:
         return False
