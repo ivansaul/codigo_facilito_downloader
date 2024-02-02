@@ -1,6 +1,5 @@
 """ Bootcamp model """
 
-
 from pydantic import BaseModel
 
 

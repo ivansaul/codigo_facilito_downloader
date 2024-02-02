@@ -1,8 +1,8 @@
 """Fixtures for tests"""
-import pytest
 
+import pytest
 from src.api import FacilitoApi
-from src.models.video import MediaType, Video
+from src.models.video import Video
 
 ##################
 # VIDEO FIXTURES #

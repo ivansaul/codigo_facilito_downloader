@@ -2,7 +2,6 @@
 Synchronous Client to scrape data from Codigo Facilito.
 """
 
-
 from typing import Optional
 
 from playwright.sync_api import sync_playwright

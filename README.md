@@ -16,7 +16,7 @@ con un script creado en `Python` utilizando `yt-dlp` como un subproceso.
 ![GitHub repo size](https://img.shields.io/github/repo-size/ivansaul/codigo_facilito_downloader)
 ![GitHub stars](https://img.shields.io/github/stars/ivansaul/codigo_facilito_downloader)
 ![GitHub forks](https://img.shields.io/github/forks/ivansaul/codigo_facilito_downloader)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <a href="https://discord.gg/tDvybtJ7y9">
     <img alt="Discord Server" height="50" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/social/discord-plural_vector.svg">
@@ -121,7 +121,7 @@ playwright install firefox
 ```console
 $ python coco.py login
 
-What's your email?: test@email.com    
+What's your email?: test@email.com
 Confirm your email?: test@email.com
 What's your password?: facilito123
 Confirm your password?: facilito123

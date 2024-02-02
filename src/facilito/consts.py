@@ -2,7 +2,6 @@
 Constants
 """
 
-
 from enum import Enum
 
 COOKIES_FILE = ".cookies.txt"
