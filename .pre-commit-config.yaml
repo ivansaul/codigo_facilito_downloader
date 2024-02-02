@@ -1,0 +1,26 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: check-toml # Checks that files are valid TOML
+    -   id: trailing-whitespace # Trims trailing whitespace
+    -   id: mixed-line-ending # Replaces or checks mixed line ending
+    -   id: end-of-file-fixer # Makes sure files end in a newline and only a newline
+    -   id: check-added-large-files # Checks for large files
+-   repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+    -   id: black # Python code formatter
+-   repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+    -   id: isort # Python import sorter
+        args: ["--profile", "black"]
+-   repo: https://github.com/hadialqattan/pycln  # removes unused imports
+    rev: v2.3.0
+    hooks:
+    -   id: pycln # Removes unused imports
+        args: [--all]
