@@ -40,8 +40,8 @@ El script utiliza **Playwright & Firefox & ffmpeg**, así que asegúrate de tene
 ```console
 # Actualiza los repositorios
 sudo apt update -y
-# Instalar firefox, ffmpeg y pipx
-sudo apt install firefox ffmpeg pipx -y
+# Instalar firefox, ffmpeg, git y pipx
+sudo apt install firefox ffmpeg git pipx -y
 # Agregar pipx al PATH
 pipx ensurepath
 ```
@@ -51,8 +51,8 @@ pipx ensurepath
 ```console
 # Actualiza los repositorios
 sudo pacman -Syu
-# Instalar firefox, ffmpeg y pipx
-sudo pacman -S firefox ffmpeg python-pipx
+# Instalar firefox, ffmpeg, git y pipx
+sudo pacman -S firefox ffmpeg git python-pipx
 # Agregar pipx al PATH
 pipx ensurepath
 ```
@@ -61,20 +61,21 @@ pipx ensurepath
 
 > [!IMPORTANT]
 > Los pasos que se muestran, son a través del gestor de paquetes para Windows [(Scoop)][scoop] `->` [(Ver Tutorial)][scoop-tutorial].
-> Tambien puedes instalar las dependencias de la forma tradicional, descargando uno a uno los installadores. Pero la forma mas facil y recomendada es usar el gestor de paquetes.
+> También puedes instalar las dependencias de la forma tradicional, descargando uno a uno los instaladores. Pero la forma mas fácil y recomendada es usar el gestor de paquetes.
 
 ```console
-# Instalar Python
+# Agrega repositorios
 scoop bucket add main
+scoop bucket add extras
+# Instalar Python
 scoop install python
 # Instalar Firefox
-scoop bucket add extras
 scoop install extras/firefox
 # Instalar ffmpeg
-scoop bucket add main
 scoop install main/ffmpeg
+# Instalar git
+scoop install main/git
 # Instalar pipx
-scoop bucket add main
 scoop install main/pipx
 # Agrega pipx al PATH
 pipx ensurepath
@@ -85,8 +86,8 @@ pipx ensurepath
 ```console
 # Actualiza los repositorios
 brew update
-# Instalar firefox, ffmpeg y pipx
-brew install firefox ffmpeg pipx
+# Instalar firefox, ffmpeg, git y pipx
+brew install firefox ffmpeg git pipx
 # Agregar pipx al PATH
 pipx ensurepath
 ```
@@ -174,7 +175,13 @@ Quality (best, 1080, 720, 480, 360, worst) [best]: 480
 > Revisa los logs(`cli.log`) de la consola para ver un registro de los videos que por algún motivo no se pudieron descargar.
 
 > [!TIP]
-> Si por algun motivo se cancela la descarga. Puedes retomarlo con el comando `python coco.py download`
+> Si por algún motivo se cancela la descarga. Puedes retomarlo con el comando `python coco.py download`
+
+> [!IMPORTANT]
+> Para que el script funcione correctamente, recuerda siempre tener una copia exacta y actualizada del repositorio remoto..
+> 1. `git checkout master`
+> 2. `git fetch origin`
+> 3. `git reset --hard origin/master`
 
 ## Contribuidores
 
