@@ -68,7 +68,7 @@ pipx ensurepath
 scoop bucket add main
 scoop bucket add extras
 # Instalar Python
-scoop install python
+scoop install main/python
 # Instalar Firefox
 scoop install extras/firefox
 # Instalar ffmpeg
