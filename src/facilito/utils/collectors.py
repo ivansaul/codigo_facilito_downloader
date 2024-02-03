@@ -42,7 +42,7 @@ def get_video_detail_sync(url: str, page: Page) -> Video:
         raise VideoError(error_message) from e
 
     video_id = page.locator("input[name='video_id']").first.get_attribute("value")
-    course_id = page.locator("input[name='course_id']").get_attribute("value")
+    course_id = page.locator("input[name='course_id']").first.get_attribute("value")
 
     if video_id is None or course_id is None:
         error_message = f"[VIDEO] id not found: {url}"
