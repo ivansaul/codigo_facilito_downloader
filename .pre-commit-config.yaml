@@ -3,7 +3,7 @@
 
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v4.5.0
     hooks:
     -   id: check-toml # Checks that files are valid TOML
     -   id: trailing-whitespace # Trims trailing whitespace
@@ -15,12 +15,12 @@ repos:
     hooks:
     -   id: black # Python code formatter
 -   repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
     -   id: isort # Python import sorter
         args: ["--profile", "black"]
 -   repo: https://github.com/hadialqattan/pycln  # removes unused imports
-    rev: v2.3.0
+    rev: v2.4.0
     hooks:
     -   id: pycln # Removes unused imports
         args: [--all]
