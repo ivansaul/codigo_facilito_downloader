@@ -1,3 +1,5 @@
+[![banner-testing](https://i.imgur.com/daUCSKF.png)](https://discord.gg/tDvybtJ7y9)
+
 <div align="center">
     <img width="150" src="https://i.imgur.com/dca7pcI.png" alt="Coco Logo">
 </div>
