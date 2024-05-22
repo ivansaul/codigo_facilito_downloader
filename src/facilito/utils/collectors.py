@@ -7,7 +7,7 @@ from playwright.sync_api import Page
 from .. import consts
 from ..errors import CourseError, URLError, VideoError
 from ..helpers import is_course_url, is_video_url
-from ..models.course import Course, CourseSection
+from ..models.course import Course, CourseSection, VideoURL
 from ..models.video import MediaType, Video
 from ..utils import expanders
 from ..utils.logger import logger
@@ -143,15 +143,24 @@ def _get_sections(page: Page) -> list[CourseSection]:
         #     logger.debug("[Section Subtitle] %s", subtitle_match.inner_text())
 
         a_tags = div.query_selector_all("a")
-        href_values = [a.get_attribute("href") for a in a_tags]
-        all_video_urls = [f"{consts.BASE_URL}{href}" for href in href_values]
+        all_videos: list[VideoURL] = []
+        for a_tag in a_tags:
+            p_element_title = a_tag.query_selector("p[class='ibm f-text-16 bold no-margin-bottom f-top-small']")
+            if p_element_title is not None:
+                video_title = p_element_title.inner_text()
+                video_url = a_tag.get_attribute("href")
+                video_url_obj = VideoURL(
+                    title=video_title,
+                    url=f"{consts.BASE_URL}{video_url}",
+                )
+                all_videos.append(video_url_obj)
 
-        logger.debug("This section has %s videos", len(all_video_urls))
+        logger.debug("This section has %s videos", len(all_videos))
 
         sections.append(
             CourseSection(
                 title=title_match.inner_text(),
-                videos_url=all_video_urls,
+                videos_url=all_videos,
             ),
         )
 

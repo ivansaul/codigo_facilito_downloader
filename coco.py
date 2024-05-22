@@ -11,7 +11,12 @@ from rich.table import Table
 
 from facilito import consts, helpers  # type: ignore
 from facilito.core import Client  # type: ignore
-from facilito.errors import CourseError, DownloadError, VideoError  # type: ignore
+from facilito.errors import (  # type: ignore
+    CourseError,
+    DownloadError,
+    URLError,
+    VideoError,
+)
 from facilito.models.video import Quality  # type: ignore
 from facilito.utils.logger import cli_logger  # type: ignore
 
@@ -80,6 +85,7 @@ def download(
 
     if helpers.is_course_url(url):
         with Client(headless=headless) as client:
+            LST_ERRORS_URL = []
             tprint("⠹ Processing...")
 
             try:
@@ -113,10 +119,17 @@ def download(
                 section_videos = section.videos_url
                 for pfx_v, video_url in enumerate(section_videos, start=1):
                     try:
-                        video = client.video(video_url)
+                        video = client.video(video_url.url)
+                    except URLError as e:
+                        tprint("✗ Unable to fetch the video from URL.")
+                        message = f"[SECTION] {section_title} [VIDEO] {video_url.url}"
+                        cli_logger.error(message)
+                        tprint("[bold red]Error![/bold red] Thats not a valid video URL => [green]{:s}[/green] [link]{:s}[/link]".format(video_url.title, video_url.url))
+                        LST_ERRORS_URL.append({'section': section_title, 'video_title': video_url.title, 'url': video_url.url})
+                        continue
                     except VideoError as e:
                         tprint("✗ Unable to fetch the video details.")
-                        message = f"[SECTION] {section_title} [VIDEO] {video_url}"
+                        message = f"[SECTION] {section_title} [VIDEO] {video_url.url}"
                         cli_logger.error(message)
                         continue
                     max_retries = 5
@@ -141,6 +154,15 @@ def download(
                                 break
                         else:
                             tprint("✓ Done!")
+
+            if len(LST_ERRORS_URL) > 0:
+                tprint("[bold red]URLs with ERROR[/bold red]")
+                for leu in LST_ERRORS_URL:
+                    tprint("[yellow]----------------------------------------------------------------------[/yellow]")
+                    tprint("\t[bold green]Section:[/bold green] {:s}".format(leu['section']))
+                    tprint("\t[bold green]Title video:[/bold green] {:s}".format(leu['video_title']))
+                    tprint("\t[bold green]URL:[/bold green] [link]{:s}[/link]".format(leu['url']))
+                tprint("[yellow]----------------------------------------------------------------------[/yellow]")
 
         raise typer.Exit()
 
