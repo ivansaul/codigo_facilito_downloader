@@ -85,7 +85,7 @@ def download(
 
     if helpers.is_course_url(url):
         with Client(headless=headless) as client:
-            LST_ERRORS_URL = []
+            lst_errors_url = []
             tprint("⠹ Processing...")
 
             try:
@@ -119,15 +119,22 @@ def download(
                 section_videos = section.videos_url
                 for pfx_v, video_url in enumerate(section_videos, start=1):
                     try:
-                        video = client.video(video_url.url)
-                    except URLError as e:
+                        video = client.video(video_url)
+                    except URLError:
                         tprint("✗ Unable to fetch the video from URL.")
-                        message = f"[SECTION] {section_title} [VIDEO] {video_url.url}"
+                        message = (
+                            f"[SECTION] {section_title} [VIDEO] {pfx_v:02}. {video_url}"
+                        )
                         cli_logger.error(message)
-                        tprint("[bold red]Error![/bold red] Thats not a valid video URL => [green]{:s}[/green] [link]{:s}[/link]".format(video_url.title, video_url.url))
-                        LST_ERRORS_URL.append({'section': section_title, 'video_title': video_url.title, 'url': video_url.url})
+                        tprint(
+                            "[bold red]Error![/bold red] Thats not a valid video URL => "
+                        )
+                        tprint(f"[green]{pfx_v:02d}. [link]{video_url}[/link][/green]")
+                        lst_errors_url.append(
+                            {"section": section_title, "seq": pfx_v, "url": video_url}
+                        )
                         continue
-                    except VideoError as e:
+                    except VideoError:
                         tprint("✗ Unable to fetch the video details.")
                         message = f"[SECTION] {section_title} [VIDEO] {video_url.url}"
                         cli_logger.error(message)
@@ -155,14 +162,14 @@ def download(
                         else:
                             tprint("✓ Done!")
 
-            if len(LST_ERRORS_URL) > 0:
+            if len(lst_errors_url) > 0:
                 tprint("[bold red]URLs with ERROR[/bold red]")
-                for leu in LST_ERRORS_URL:
-                    tprint("[yellow]----------------------------------------------------------------------[/yellow]")
-                    tprint("\t[bold green]Section:[/bold green] {:s}".format(leu['section']))
-                    tprint("\t[bold green]Title video:[/bold green] {:s}".format(leu['video_title']))
-                    tprint("\t[bold green]URL:[/bold green] [link]{:s}[/link]".format(leu['url']))
-                tprint("[yellow]----------------------------------------------------------------------[/yellow]")
+                for leu in lst_errors_url:
+                    tprint("[yellow]-[/yellow]" * 70)
+                    tprint(f"\t[bold green]Section:[/bold green] {leu['section']}")
+                    tprint(f"\t[bold green]Number video:[/bold green] {leu['seq']:02d}")
+                    tprint(f"\t[bold green]URL:[/bold green] [link]{leu['url']}[/link]")
+                tprint("[yellow]-[/yellow]" * 70)
 
         raise typer.Exit()
 

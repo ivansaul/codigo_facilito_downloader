@@ -5,13 +5,6 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-class VideoURL(BaseModel):
-    """Video model, video of URL"""
-
-    id: Optional[str] = None
-    title: str
-    url: str
-
 class CourseSection(BaseModel):
     """course section model"""
 
@@ -19,7 +12,7 @@ class CourseSection(BaseModel):
     title: str
     subtitle: Optional[str] = None
     description: Optional[str] = None
-    videos_url: list[VideoURL]
+    videos_url: list[str]
 
 
 class Course(BaseModel):
