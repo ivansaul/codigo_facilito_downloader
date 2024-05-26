@@ -12,6 +12,7 @@ class VideoURL(BaseModel):
     title: str
     url: str
 
+
 class CourseSection(BaseModel):
     """course section model"""
 

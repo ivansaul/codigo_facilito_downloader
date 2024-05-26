@@ -145,7 +145,9 @@ def _get_sections(page: Page) -> list[CourseSection]:
         a_tags = div.query_selector_all("a")
         all_videos: list[VideoURL] = []
         for a_tag in a_tags:
-            p_element_title = a_tag.query_selector("p[class='ibm f-text-16 bold no-margin-bottom f-top-small']")
+            p_element_title = a_tag.query_selector(
+                "p[class='ibm f-text-16 bold no-margin-bottom f-top-small']"
+            )
             if p_element_title is not None:
                 video_title = p_element_title.inner_text()
                 video_url = a_tag.get_attribute("href")
