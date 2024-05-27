@@ -11,7 +11,12 @@ from rich.table import Table
 
 from facilito import consts, helpers  # type: ignore
 from facilito.core import Client  # type: ignore
-from facilito.errors import CourseError, DownloadError, VideoError  # type: ignore
+from facilito.errors import (  # type: ignore
+    CourseError,
+    DownloadError,
+    URLError,
+    VideoError,
+)
 from facilito.models.video import Quality  # type: ignore
 from facilito.utils.logger import cli_logger  # type: ignore
 
@@ -80,6 +85,7 @@ def download(
 
     if helpers.is_course_url(url):
         with Client(headless=headless) as client:
+            errors_list = []
             tprint("⠹ Processing...")
 
             try:
@@ -114,7 +120,21 @@ def download(
                 for pfx_v, video_url in enumerate(section_videos, start=1):
                     try:
                         video = client.video(video_url)
-                    except VideoError as e:
+                    except URLError:
+                        tprint("✗ Unable to fetch the video from URL.")
+                        message = (
+                            f"[SECTION] {section_title} [VIDEO] {pfx_v:02}. {video_url}"
+                        )
+                        cli_logger.error(message)
+                        tprint(
+                            "[bold red]Error![/bold red] Thats not a valid video URL => "
+                        )
+                        tprint(f"[green]{pfx_v:02d}. [link]{video_url}[/link][/green]")
+                        errors_list.append(
+                            {"section": section_title, "seq": pfx_v, "url": video_url}
+                        )
+                        continue
+                    except VideoError:
                         tprint("✗ Unable to fetch the video details.")
                         message = f"[SECTION] {section_title} [VIDEO] {video_url}"
                         cli_logger.error(message)
@@ -141,6 +161,19 @@ def download(
                                 break
                         else:
                             tprint("✓ Done!")
+
+            if len(errors_list) > 0:
+                tprint("[bold red]URLs with ERROR[/bold red]")
+                for error in errors_list:
+                    tprint("[yellow]-[/yellow]" * 70)
+                    tprint(f"\t[bold green]Section:[/bold green] {error['section']}")
+                    tprint(
+                        f"\t[bold green]Number video:[/bold green] {error['seq']:02d}"
+                    )
+                    tprint(
+                        f"\t[bold green]URL:[/bold green] [link]{error['url']}[/link]"
+                    )
+                tprint("[yellow]-[/yellow]" * 70)
 
         raise typer.Exit()
 
