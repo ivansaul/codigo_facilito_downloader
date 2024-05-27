@@ -85,7 +85,7 @@ def download(
 
     if helpers.is_course_url(url):
         with Client(headless=headless) as client:
-            lst_errors_url = []
+            errors_list = []
             tprint("⠹ Processing...")
 
             try:
@@ -130,13 +130,13 @@ def download(
                             "[bold red]Error![/bold red] Thats not a valid video URL => "
                         )
                         tprint(f"[green]{pfx_v:02d}. [link]{video_url}[/link][/green]")
-                        lst_errors_url.append(
+                        errors_list.append(
                             {"section": section_title, "seq": pfx_v, "url": video_url}
                         )
                         continue
                     except VideoError:
                         tprint("✗ Unable to fetch the video details.")
-                        message = f"[SECTION] {section_title} [VIDEO] {video_url.url}"
+                        message = f"[SECTION] {section_title} [VIDEO] {video_url}"
                         cli_logger.error(message)
                         continue
                     max_retries = 5
@@ -162,13 +162,17 @@ def download(
                         else:
                             tprint("✓ Done!")
 
-            if len(lst_errors_url) > 0:
+            if len(errors_list) > 0:
                 tprint("[bold red]URLs with ERROR[/bold red]")
-                for leu in lst_errors_url:
+                for error in errors_list:
                     tprint("[yellow]-[/yellow]" * 70)
-                    tprint(f"\t[bold green]Section:[/bold green] {leu['section']}")
-                    tprint(f"\t[bold green]Number video:[/bold green] {leu['seq']:02d}")
-                    tprint(f"\t[bold green]URL:[/bold green] [link]{leu['url']}[/link]")
+                    tprint(f"\t[bold green]Section:[/bold green] {error['section']}")
+                    tprint(
+                        f"\t[bold green]Number video:[/bold green] {error['seq']:02d}"
+                    )
+                    tprint(
+                        f"\t[bold green]URL:[/bold green] [link]{error['url']}[/link]"
+                    )
                 tprint("[yellow]-[/yellow]" * 70)
 
         raise typer.Exit()
