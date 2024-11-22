@@ -94,6 +94,34 @@ class AsyncFacilito:
         return await collectors.fetch_course(self.context, url)
 
     @try_except_request
+    @login_required
+    async def download(self, url: str, **kwargs):
+        from pathlib import Path
+
+        from .downloaders import download_course, download_unit
+        from .models import TypeUnit
+        from .utils import is_course, is_lecture, is_video
+
+        if is_video(url) or is_lecture(url):
+            unit = await self.fetch_unit(url)
+            extension = ".mp4" if unit.type == TypeUnit.VIDEO else ".mhtml"
+            await download_unit(
+                self.context,
+                unit,
+                Path(unit.slug + extension),
+                **kwargs,
+            )
+
+        elif is_course(url):
+            course = await self.fetch_course(url)
+            await download_course(self.context, course, **kwargs)
+
+        else:
+            raise Exception(
+                "Please provide a valid URL, either a video, lecture or course."
+            )
+
+    @try_except_request
     async def _set_profile(self):
         SELECTOR = "h1.h1.f-text-34"
         TIMEOUT = 5 * 1000

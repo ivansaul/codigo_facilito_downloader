@@ -84,3 +84,43 @@ def hashify(input: str) -> str:
     """
     hash_object = hashlib.sha256(input.encode("utf-8"))
     return hash_object.hexdigest()
+
+
+async def download_file(url: str, path: Path | str, overwrite: bool = False):
+    """
+    Download a file from a URL and save it to a path.
+
+    :param str url: URL of the file to download
+    :param Path | str path: path to save the file
+    :param bool overwrite: overwrite existing file if exists (default: False)
+    :return None: None
+    :raises aiohttp.ClientError: For network-related errors
+    :raises OSError: If there's an error writing to the file
+    :raises Exception: For other errors
+
+    Example
+    -------
+    >>> await download_file("https://example.com/file.txt", "file.txt")
+    """
+    import aiofiles  # type: ignore
+    import aiohttp
+
+    path = Path(path) if isinstance(path, str) else path
+
+    if not overwrite and path.exists():
+        return
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url) as response:
+                response.raise_for_status()
+                path.parent.mkdir(parents=True, exist_ok=True)
+                async with aiofiles.open(path, "wb") as file:
+                    async for chunk in response.content.iter_chunked(1024):
+                        await file.write(chunk)
+        except aiohttp.ClientError:
+            raise Exception(f"Network error downloading {url}")
+        except OSError:
+            raise Exception(f"Error saving to {path}")
+        except Exception:
+            raise Exception(f"Something went wrong downloading {url}")

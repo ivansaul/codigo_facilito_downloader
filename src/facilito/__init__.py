@@ -1,5 +1,5 @@
 from .async_api import AsyncFacilito
-from .models import Course, TypeUnit, Unit, Video
+from .models import Course, Quality, TypeUnit, Unit, Video
 
 __all__ = [
     "AsyncFacilito",
@@ -7,4 +7,5 @@ __all__ = [
     "TypeUnit",
     "Unit",
     "Video",
+    "Quality",
 ]
