@@ -6,6 +6,9 @@ authors = ["ivansaul"]
 readme = "README.md"
 packages = [{include = "facilito", from = "src"}]
 
+[tool.poetry.scripts]
+facilito = "facilito.cli:app"
+
 [tool.poetry.dependencies]
 python = "^3.10"
 pytest-playwright = "^0.5.2"
