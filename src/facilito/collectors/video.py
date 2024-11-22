@@ -3,7 +3,7 @@ from playwright.async_api import BrowserContext
 from ..constants import VIDEO_M3U8_URL
 from ..errors import VideoError
 from ..models import Video
-from .helpers import is_video
+from ..utils import is_video
 
 
 async def fetch_video(context: BrowserContext, url: str) -> Video:

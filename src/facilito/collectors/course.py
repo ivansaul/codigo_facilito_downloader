@@ -4,7 +4,7 @@ from ..constants import BASE_URL
 from ..errors import CourseError, UnitError
 from ..helpers import slugify
 from ..models import Chapter, Course, Unit
-from .helpers import get_unit_type
+from ..utils import get_unit_type
 
 
 async def _fetch_course_chapters(page: Page) -> list[Chapter]:

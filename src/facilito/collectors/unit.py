@@ -3,7 +3,7 @@ from playwright.async_api import BrowserContext
 from ..errors import UnitError
 from ..helpers import slugify
 from ..models import Unit
-from .helpers import get_unit_type
+from ..utils import get_unit_type
 
 
 async def fetch_unit(context: BrowserContext, url: str):

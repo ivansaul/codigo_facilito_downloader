@@ -4,8 +4,10 @@ from pathlib import Path
 
 from playwright.async_api import BrowserContext, Page
 
+from .errors import UnitError
 from .helpers import read_json, write_json
 from .logger import logger
+from .models import TypeUnit
 
 
 def login_required(func):
@@ -94,3 +96,71 @@ async def save_page(
     finally:
         if isinstance(src, str):
             await page.close()
+
+
+def is_video(url: str) -> bool:
+    """
+    Check if a URL is a video.
+
+    :param str url: URL to check.
+    :return bool: True if the URL is a video, False otherwise.
+
+    Example
+    -------
+    >>> is_video("https: ..../videos/...")
+    True
+    """
+    return "/videos/" in url
+
+
+def is_lecture(url: str) -> bool:
+    """
+    Check if a URL is a lecture.
+
+    :param str url: URL to check.
+    :return bool: True if the URL is a lecture, False otherwise.
+
+    Example
+    -------
+    >>> is_lecture("https: ..../articulos/...")
+    True
+    """
+    return "/articulos/" in url
+
+
+def is_course(url: str) -> bool:
+    """
+    Check if a URL is a course.
+
+    :param str url: URL to check.
+    :return bool: True if the URL is a course, False otherwise.
+
+    Example
+    -------
+    >>> is_course("https: ..../cursos/...")
+    True
+    """
+    return "/cursos/" in url
+
+
+def get_unit_type(url: str) -> TypeUnit:
+    """
+    Get the type of a unit from its URL.
+
+    :param str url: URL of the unit.
+    :return TypeUnit: Type of the unit.
+    :raises UnitError: If the unit type is not recognized.
+
+    Example
+    -------
+    >>> get_unit_type("https: ..../videos/...")
+    TypeUnit.VIDEO
+    """
+
+    if is_video(url):
+        return TypeUnit.VIDEO
+
+    if is_lecture(url):
+        return TypeUnit.LECTURE
+
+    raise UnitError()
