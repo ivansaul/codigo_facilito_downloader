@@ -11,7 +11,7 @@ from ..utils import get_unit_type
 
 async def _fetch_course_chapters(page: Page) -> list[Chapter]:
     CHAPTERS_SELECTOR = (
-        ".collapsible.no-box-shadow.no-border.f-topics.no-time div.f-top-16"
+        ".collapsible.no-box-shadow.no-border.f-topics.no-time > .f-top-16"
     )
 
     try:
@@ -32,7 +32,7 @@ async def _fetch_course_chapters(page: Page) -> list[Chapter]:
         for i in range(chapters_count):
             CHAPTER_NAME_SELECTOR = "header h4"
             UNITS_SELECTOR = ".collapsible-body ul a"
-            UNIT_NAME_SELECTOR = ".box p.ibm"
+            UNIT_NAME_SELECTOR = "p.ibm"
 
             chapter_name = (
                 await chapters_selectors.nth(i)
@@ -86,7 +86,7 @@ async def _fetch_course_chapters(page: Page) -> list[Chapter]:
 
 
 async def fetch_course(context: BrowserContext, url: str) -> Course:
-    NAME_SELECTOR = ".cover-with-image h1"
+    NAME_SELECTOR = ".f-course-presentation h1, .cover-with-image h1"
 
     try:
         page = await context.new_page()
