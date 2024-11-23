@@ -47,6 +47,6 @@ branch = "master"
 build_command = "pip install poetry && poetry build"
 major_on_zero = true
 allow_zero_version = true
-upload_to_pypi = true
+upload_to_pypi = false
 upload_to_release = true
 commit_version_number = true
