@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v0.2.1 (2024-11-23)
+
+### Fix
+
+* fix: video m3u8 URL retrieval ([`af9470f`](https://github.com/ivansaul/codigo_facilito_downloader/commit/af9470f683e3bc3aa2c5bd2fba7ec9505ff6ee80))
+
+### Unknown
+
+* Merge pull request #47 from ivansaul/refactor
+
+fix: video m3u8 URL retrieval ([`83a4f54`](https://github.com/ivansaul/codigo_facilito_downloader/commit/83a4f54ae3b11fea0fabe95bb38560b1539421c6))
+
 ## v0.2.0 (2024-11-23)
 
 ### Chore
