@@ -9,12 +9,9 @@ BASE_URL = "https://codigofacilito.com"
 LOGIN_URL = BASE_URL + "/users/sign_in"
 HOME_URL = BASE_URL + "/home"
 
+VIDEO_BASE_URL = "https://video-storage.codigofacilito.com"
 VIDEO_M3U8_URL = (
-    "https://video-storage.codigofacilito.com"
-    + "/hls"
-    + "/{course_id}"
-    + "/{video_id}"
-    + "/playlist.m3u8"
+    VIDEO_BASE_URL + "/hls" + "/{course_id}" + "/{video_id}" + "/playlist.m3u8"
 )
 
 # --- Session directory ---
