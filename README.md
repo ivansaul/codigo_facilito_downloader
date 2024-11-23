@@ -43,7 +43,7 @@ con un script creado con ***`Python`*** y ***`Playwright`***.
 Para [`instalar` | `actualizar` ], ejecuta el siguiente comando en tu terminal:
 
 ```console
-pip install -U facilito
+pip install -U git+https://github.com/ivansaul/codigo_facilito_downloader.git
 ```
 
 Instala las dependencias de `playwright`:
