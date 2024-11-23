@@ -4,6 +4,7 @@ from playwright.async_api import BrowserContext
 
 from ..constants import APP_NAME
 from ..models import Course, TypeUnit
+from ..utils import save_page
 from .unit import download_unit
 
 DIR_PATH = Path(APP_NAME)
@@ -20,6 +21,12 @@ async def download_course(context: BrowserContext, course: Course, **kwargs):
     """
     COURSE_DIR_PATH = DIR_PATH / course.slug
     COURSE_DIR_PATH.mkdir(parents=True, exist_ok=True)
+
+    override = kwargs.get("override", False)
+    source_path = COURSE_DIR_PATH / "source.mhtml"
+
+    if override or not source_path.exists():
+        await save_page(context, course.url, source_path)
 
     for idx, chapter in enumerate(course.chapters, 1):
         CHAPTER_DIR_PATH = COURSE_DIR_PATH / f"{idx:02d}_{chapter.slug}"
