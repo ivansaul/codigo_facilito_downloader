@@ -1,3 +1,5 @@
+import asyncio
+
 from playwright.async_api import BrowserContext, Page
 
 from ..constants import BASE_URL
@@ -18,6 +20,13 @@ async def _fetch_course_chapters(page: Page) -> list[Chapter]:
 
         if not chapters_count:
             raise CourseError()
+
+        # expand all chapters
+        for i in range(chapters_count):
+            CHEVRON_SELECTOR = "div.chevron"
+            await chapters_selectors.nth(i).locator(CHEVRON_SELECTOR).first.click()
+
+        await asyncio.sleep(2)
 
         chapters: list[Chapter] = []
         for i in range(chapters_count):
@@ -77,17 +86,15 @@ async def _fetch_course_chapters(page: Page) -> list[Chapter]:
 
 
 async def fetch_course(context: BrowserContext, url: str) -> Course:
-    NAME_SELECTOR = ".f-course-presentation h1"
-    DESCRIPTION_SELECTOR = ".f-course-presentation div.f-top-small p"
+    NAME_SELECTOR = ".cover-with-image h1"
 
     try:
         page = await context.new_page()
         await page.goto(url)
 
         name = await page.locator(NAME_SELECTOR).first.text_content()
-        description = await page.locator(DESCRIPTION_SELECTOR).first.text_content()
 
-        if not name or not description:
+        if not name:
             raise CourseError()
 
         chapters = await _fetch_course_chapters(page)
@@ -103,5 +110,4 @@ async def fetch_course(context: BrowserContext, url: str) -> Course:
         slug=slugify(name),
         url=url,
         chapters=chapters,
-        description=description,
     )
