@@ -20,7 +20,10 @@ async def fetch_unit(context: BrowserContext, url: str):
                 name="quiz",
                 slug="quiz",
             )
+    except Exception:
+        raise UnitError()
 
+    try:
         page = await context.new_page()
         await page.goto(url)
 
@@ -28,6 +31,8 @@ async def fetch_unit(context: BrowserContext, url: str):
 
         if not name:
             raise UnitError()
+
+        type = get_unit_type(url)
 
     except Exception:
         raise UnitError()
