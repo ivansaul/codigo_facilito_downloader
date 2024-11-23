@@ -18,6 +18,7 @@ async def download_unit(context: BrowserContext, unit: Unit, path: Path, **kwarg
 
     :param Quality quality: Quality of the video (default: Quality.MAX).
     :param bool override: Override existing file if exists (default: False).
+    :param int threads: Number of threads to use (default: 10).
     """
 
     if unit.type == TypeUnit.VIDEO:

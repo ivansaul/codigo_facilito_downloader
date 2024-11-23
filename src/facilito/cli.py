@@ -57,6 +57,17 @@ def download(
             show_default=True,
         ),
     ] = False,
+    threads: Annotated[
+        int,
+        typer.Option(
+            "--threads",
+            "-t",
+            min=1,
+            max=16,
+            help="Number of threads to use.",
+            show_default=True,
+        ),
+    ] = 10,
 ):
     """
     Download a course | video | lecture from the given URL.
@@ -79,6 +90,7 @@ def download(
             url,
             quality=quality,
             override=override,
+            threads=threads,
         )
     )
 

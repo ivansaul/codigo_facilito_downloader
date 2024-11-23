@@ -18,6 +18,7 @@ async def download_course(context: BrowserContext, course: Course, **kwargs):
     :param Course course: Course model to download.
 
     :param bool override: Override existing file if exists (default: False).
+    :param int threads: Number of threads to use (default: 10).
     """
     COURSE_DIR_PATH = DIR_PATH / course.slug
     COURSE_DIR_PATH.mkdir(parents=True, exist_ok=True)

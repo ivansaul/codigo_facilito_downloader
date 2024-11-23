@@ -121,12 +121,14 @@ async def download_video(
 
     :param list[dic] cookies: Cookies for authentication (default: None).
     :param bool override: Override existing file if exists (default: False).
+    :param int threads: Number of threads to use (default: 10).
     """
 
     import subprocess
 
     cookies = kwargs.get("cookies", None)
     override = kwargs.get("override", False)
+    threads = kwargs.get("threads", 10)
 
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -151,6 +153,8 @@ async def download_video(
         "--quality",
         quality.value,
         "--skip-prompts",
+        "--threads",
+        str(threads),
     ]
 
     # Download vsd binary if not exists
