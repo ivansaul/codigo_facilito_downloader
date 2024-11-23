@@ -29,9 +29,6 @@ con un script creado con ***`Python`*** y ***`Playwright`***.
 
 ![coco-demo](https://github.com/ivansaul/codigo_facilito_downloader/assets/15005581/b3029dda-c5ab-4cd9-97d3-acc61f3be3a0)
 
-> [!IMPORTANT]
-> La versión actual es inestable y puede contener errores. Si necesitas una versión más estable, considera usar la versión anterior [***[VER]***][previous-version].
-
 ## TODO
 
 ¡Contribuciones son bienvenidas!
@@ -40,6 +37,7 @@ con un script creado con ***`Python`*** y ***`Playwright`***.
 - [ ] Implement custom progress bar
 - [ ] Improve error handling
 - [ ] Write tests
+- [ ] Add support for bootcamp
 
 ## Instalación | Actualización
 
@@ -141,6 +139,11 @@ facilito download URL -q 720p -t 5
 > [!TIP]
 > Si por algún motivo se cancela la descarga, vuelve a ejecutar `facilito download <url>` para retomar la descarga.
 
+<br>
+
+> [!NOTE]
+> La versión actual es inestable y puede contener errores. Si necesitas una versión más estable, considera usar la versión anterior [***[VER]***][previous-version].
+
 ## Contribuidores
 
 <a href="https://github.com/ivansaul/codigo_facilito_downloader/graphs/contributors">
@@ -168,4 +171,3 @@ Aquí tienes una lista de algunos de mis otros repositorios. ¡Échales un vista
 [ffmpeg]: https://ffmpeg.org
 [chocolatey]: https://community.chocolatey.org
 [ffmpeg-youtube]: https://youtu.be/JR36oH35Fgg?si=Gerco7SP8WlZVaKM
-[previous-version]: https://github.com/ivansaul/codigo_facilito_downloader/tree/e39524cf4a925fb036c903b5d82306f9e2088ca6
