@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD033 MD036 MD041 MD045 MD046 -->
 <div align="center">
     <img width="150" src="https://i.imgur.com/dca7pcI.png" alt="Coco Logo">
 </div>
@@ -10,8 +11,8 @@
     <b><a href="https://github.com/ivansaul/codigo_facilito_downloader">Codigo Facilito Downloader</a></b>
 </h1>
 
-Descarga automatizada de los cursos de `Codigo Facilito `<br />
-con un script creado en `Python` utilizando `yt-dlp` como un subproceso.
+Descarga automatizada de los cursos de ***`Codigo Facilito`***<br />
+con un script creado con ***`Python`*** y ***`Playwright`***.
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/ivansaul/codigo_facilito_downloader)
 ![GitHub stars](https://img.shields.io/github/stars/ivansaul/codigo_facilito_downloader)
@@ -28,160 +29,114 @@ con un script creado en `Python` utilizando `yt-dlp` como un subproceso.
 
 ![coco-demo](https://github.com/ivansaul/codigo_facilito_downloader/assets/15005581/b3029dda-c5ab-4cd9-97d3-acc61f3be3a0)
 
+## TODO
 
-## Instalación
+¡Contribuciones son bienvenidas!
 
-El script utiliza **Playwright & Firefox & ffmpeg**, así que asegúrate de tener instalados previamente en tu ordenador.
+- [ ] Improve documentation
+- [ ] Implement custom progress bar
+- [ ] Improve error handling
+- [ ] Write tests
 
-### **Linux**
+## Instalación | Actualización
 
-**En Ubuntu:**
+Para [`instalar` | `actualizar` ], ejecuta el siguiente comando en tu terminal:
 
 ```console
-# Actualiza los repositorios
-sudo apt update -y
-# Instalar firefox, ffmpeg, git y pipx
-sudo apt install firefox ffmpeg git pipx -y
-# Agregar pipx al PATH
-pipx ensurepath
+pip install -U facilito
 ```
 
-**En Archlinux:**
+Instala las dependencias de `playwright`:
 
 ```console
-# Actualiza los repositorios
-sudo pacman -Syu
-# Instalar firefox, ffmpeg, git y pipx
-sudo pacman -S firefox ffmpeg git python-pipx
-# Agregar pipx al PATH
-pipx ensurepath
-```
-
-### **Windows**
-
-> [!IMPORTANT]
-> Los pasos que se muestran, son a través del gestor de paquetes para Windows [(Scoop)][scoop] `->` [(Ver Tutorial)][scoop-tutorial].
-> También puedes instalar las dependencias de la forma tradicional, descargando uno a uno los instaladores. Pero la forma mas fácil y recomendada es usar el gestor de paquetes.
-
-```console
-# Agrega repositorios
-scoop bucket add main
-scoop bucket add extras
-# Instalar Python
-scoop install main/python
-# Instalar Firefox
-scoop install extras/firefox
-# Instalar ffmpeg
-scoop install main/ffmpeg
-# Instalar git
-scoop install main/git
-# Instalar pipx
-scoop install main/pipx
-# Agrega pipx al PATH
-pipx ensurepath
-```
-
-### **MacOS**
-
-```console
-# Actualiza los repositorios
-brew update
-# Instalar firefox, ffmpeg, git y pipx
-brew install firefox ffmpeg git pipx
-# Agregar pipx al PATH
-pipx ensurepath
-```
-
-## Instrucciones
-
-1. Clona el repositorio
-
-```console
-# Clone el repositorio
-git clone https://github.com/ivansaul/codigo_facilito_downloader.git
-# Ir al directorio
-cd codigo_facilito_downloader
-```
-
-2. Instala sus dependencias y activa el entorno virtual
-
-```console
-# Instala poetry
-pipx install poetry
-# Activa el entorno virtual
-poetry shell
-# Instala las dependencias
-poetry install
-# Instalar playwright dependencies
-playwright install-deps
-playwright install firefox
-```
-
-3. Iniciar sesión a través de la consola con tus credenciales de Codigo Facilito.
-
-```console
-$ python coco.py login
-
-What's your email?: test@email.com
-Confirm your email?: test@email.com
-What's your password?: facilito123
-Confirm your password?: facilito123
-```
-
-4. Descarga un video o un curso
-
-```console
-$ python coco.py download
-
-Url: https://codigofacilito.com/cursos/flutter-profesional
-Quality (best, 1080, 720, 480, 360, worst) [best]: best
-⠹ Processing...
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Curso profesional de Flutter ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-└──────────────────────────────┘
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
-┃ Sections                                  ┃ Videos ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
-│ 1. Introducción                           │ 9      │
-│ 2. Widgets Básicos                        │ 11     │
-│ 3. Navegación                             │ 5      │
-│ 4. Multi-child                            │ 4      │
-│ 5. Listview, gridview, ítems y utilidades │ 10     │
-│ 6. Formulario                             │ 8      │
-│ 7. Menús                                  │ 4      │
-│ Diseño                                    │ 5      │
-└───────────────────────────────────────────┴────────┘
-Would you like to download? [y/N]: y
-⠹ Downloading...
-✓ Done!
-```
-
-```console
-$ python coco.py download
-
-Url: https://codigofacilito.com/videos/icon
-Quality (best, 1080, 720, 480, 360, worst) [best]: 480
-⠹ Processing...
-⠹ Downloading...
-⠹ Icon  ...
-✓ Done!
+playwright install chromium
 ```
 
 > [!IMPORTANT]
-> Por defecto, el script descarga los videos con la mejor calidad disponible(best), pero puedes elegir entre [worst, 360, 480, 720, 1080 o best].
+> El script utiliza ***`ffmpeg`***, como un subproceso, así que asegúrate de tener instalado y actualizado.
 
-> [!IMPORTANT]
-> Revisa los logs(`cli.log`) de la consola para ver un registro de los videos que por algún motivo no se pudieron descargar.
+<details>
+
+<summary>Tips & Tricks</summary>
+
+## FFmpeg Instalación
+
+### Ubuntu / Debian
+
+```console
+sudo apt install ffmpeg -y
+```
+
+### Arch Linux
+
+```console
+sudo pacman -S ffmpeg
+```
+
+### Windows [[Tutorial]][ffmpeg-youtube]
+
+Puedes descargar la versión de `ffmpeg` para Windows desde [aquí][ffmpeg]. o algún gestor de paquetes como [`Scoop`][scoop] o [`Chocolatey`][chocolatey].
+
+```console
+scoop install ffmpeg
+```
+
+</details>
+
+## Guía de uso
+
+El `CLI` proporciona los siguientes comandos:
+
+### Login
+
+Inicia sesión en Código Facilito abriendo una ventana del navegador.
+
+```console
+facilito login
+```
+
+### Logout
+
+Elimina la sesión almacenada localmente de Código Facilito.
+
+```console
+facilito logout
+```
+
+### Descargar
+
+Descarga un curso, video o lección de Código Facilito.
+
+```console
+facilito download <url> [OPCIONES]
+```
+
+Opciones:
+
+- `--quality`, `-q`: Especifica la calidad del video (por defecto: `MAX`). Opciones disponibles: `[max|1080p|720p|480p|360p|min]`.
+- `--override`, `-w`: Sobrescribe el archivo existente si existe (por defecto: `False`).
+- `--threads`, `-t`: Número de hilos a utilizar (por defecto: `10`).
 
 > [!TIP]
-> Si por algún motivo se cancela la descarga. Puedes retomarlo con el comando `python coco.py download`
+> Para visualizar todas las opciones disponibles, ejecuta `facilito download --help`.
+
+Ejemplos:
+
+```console
+facilito download https://codigofacilito.com/cursos/docker
+```
+
+```console
+facilito download URL -q 720p -t 5
+```
 
 > [!IMPORTANT]
-> Para que el script funcione correctamente, recuerda siempre tener una copia exacta y actualizada del repositorio remoto..
-> 1. `git checkout master`
-> 2. `git fetch origin`
-> 3. `git reset --hard origin/master`
+> Asegúrate de estar logueado antes de intentar descargar los cursos.
+
+<br>
+
+> [!TIP]
+> Si por algún motivo se cancela la descarga, vuelve a ejecutar `facilito download <url>` para retomar la descarga.
 
 ## Contribuidores
 
@@ -206,17 +161,7 @@ Aquí tienes una lista de algunos de mis otros repositorios. ¡Échales un vista
 [![Bookmark Style Card](https://svg.bookmark.style/api?url=https://github.com/ivansaul/flutter_todo_app&mode=light&style=horizontal)](https://github.com/ivansaul/flutter_todo_app)
 [![Bookmark Style Card](https://svg.bookmark.style/api?url=https://github.com/ivansaul/Flutter-UI-Kit&mode=light&style=horizontal)](https://github.com/ivansaul/Flutter-UI-Kit)
 
-
-[cookies]: https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc/related
-[python]: https://www.python.org/downloads/
-[ffmpeg]: https://ffmpeg.org
-[firefox]: https://www.mozilla.org/en-US/firefox/new/
-[geckodriver]: https://github.com/mozilla/geckodriver/releases
-[yt-dlp]: https://github.com/yt-dlp/yt-dlp/wiki/Installation
-[aria2]: https://github.com/aria2/aria2/releases/tag/release-1.36.0
-[codespace]: https://github.com/codespaces
-[demo]: https://youtu.be/GbQwB0hYvQU
-[ffmpeg-win]:https://youtu.be/0zN9oZ98ZgE
-[cloudflare-branch]:https://github.com/ivansaul/codigo_facilito_downloader/tree/feature/cloudflare
 [scoop]:https://scoop.sh/
-[scoop-tutorial]:https://youtu.be/sZS7mG_zhaw?si=Yq7ZKl5k5luzNeVr
+[ffmpeg]: https://ffmpeg.org
+[chocolatey]: https://community.chocolatey.org
+[ffmpeg-youtube]: https://youtu.be/JR36oH35Fgg?si=Gerco7SP8WlZVaKM
