@@ -143,6 +143,21 @@ def is_course(url: str) -> bool:
     return "/cursos/" in url
 
 
+def is_quiz(url: str) -> bool:
+    """
+    Check if a URL is a quiz.
+
+    :param str url: URL to check.
+    :return bool: True if the URL is a quiz, False otherwise.
+
+    Example
+    -------
+    >>> is_quiz("https: ..../quizzes/...")
+    True
+    """
+    return "/quizzes/" in url
+
+
 def get_unit_type(url: str) -> TypeUnit:
     """
     Get the type of a unit from its URL.
@@ -162,5 +177,8 @@ def get_unit_type(url: str) -> TypeUnit:
 
     if is_lecture(url):
         return TypeUnit.LECTURE
+
+    if is_quiz(url):
+        return TypeUnit.QUIZ
 
     raise UnitError()

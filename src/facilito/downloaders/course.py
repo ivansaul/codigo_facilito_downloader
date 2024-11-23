@@ -42,7 +42,7 @@ async def download_course(context: BrowserContext, course: Course, **kwargs):
                     **kwargs,
                 )
 
-            if unit.type == TypeUnit.LECTURE:
+            else:
                 await download_unit(
                     context,
                     unit,

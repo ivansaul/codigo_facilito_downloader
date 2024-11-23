@@ -100,9 +100,9 @@ class AsyncFacilito:
 
         from .downloaders import download_course, download_unit
         from .models import TypeUnit
-        from .utils import is_course, is_lecture, is_video
+        from .utils import is_course, is_lecture, is_quiz, is_video
 
-        if is_video(url) or is_lecture(url):
+        if is_video(url) or is_lecture(url) or is_quiz(url):
             unit = await self.fetch_unit(url)
             extension = ".mp4" if unit.type == TypeUnit.VIDEO else ".mhtml"
             await download_unit(

@@ -30,5 +30,5 @@ async def download_unit(context: BrowserContext, unit: Unit, path: Path, **kwarg
             **kwargs,
         )  # type: ignore
 
-    if unit.type == TypeUnit.LECTURE:
+    else:
         await save_page(context, unit.url, path)

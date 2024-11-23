@@ -15,6 +15,7 @@ class Quality(str, Enum):
 class TypeUnit(str, Enum):
     LECTURE = "lecture"
     VIDEO = "video"
+    QUIZ = "quiz"
 
 
 class Resource(BaseModel):
