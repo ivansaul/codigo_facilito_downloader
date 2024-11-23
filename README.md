@@ -171,3 +171,4 @@ Aquí tienes una lista de algunos de mis otros repositorios. ¡Échales un vista
 [ffmpeg]: https://ffmpeg.org
 [chocolatey]: https://community.chocolatey.org
 [ffmpeg-youtube]: https://youtu.be/JR36oH35Fgg?si=Gerco7SP8WlZVaKM
+[previous-version]: https://github.com/ivansaul/codigo_facilito_downloader/tree/e39524cf4a925fb036c903b5d82306f9e2088ca6
