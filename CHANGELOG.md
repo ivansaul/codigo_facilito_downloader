@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## v0.2.0 (2024-11-23)
+
+### Chore
+
+* chore: removes redundant PyPI publishing step
+
+Removes the redundant `pypa/gh-action-pypi-publish` step from the release workflow. ([`2c63fba`](https://github.com/ivansaul/codigo_facilito_downloader/commit/2c63fbaa4ec9f6b4f91194e1dbd73838536ddf33))
+
+### Documentation
+
+* docs: add important stability notice callout ([`75f7c25`](https://github.com/ivansaul/codigo_facilito_downloader/commit/75f7c25022abb1c3e87896411a7a1f86fbff2a78))
+
+### Feature
+
+* feat: add support for quiz downloads ([`28a0284`](https://github.com/ivansaul/codigo_facilito_downloader/commit/28a02842c58ab945764f56ce985422034200dbc7))
+
+* feat: add support for dynamic CSS selectors in course extraction
+
+Refine selectors to handle dynamic HTML structures for chapters and units. ([`4670197`](https://github.com/ivansaul/codigo_facilito_downloader/commit/46701973af47cfd782d267f5f4e36354b69387eb))
+
+### Fix
+
+* fix: unit download logic ([`91d8d21`](https://github.com/ivansaul/codigo_facilito_downloader/commit/91d8d21e795f4195808e541972c2e0737c943ab2))
+
+### Unknown
+
+* Merge pull request #46 from ivansaul/refactor
+
+feat: refine selectors to handle dynamic HTML structures ([`82dd297`](https://github.com/ivansaul/codigo_facilito_downloader/commit/82dd2973cd6299e215124f8c3471d49ce39821bd))
+
+* Merge pull request #45 from ivansaul/refactor
+
+docs: add important stability notice callout ([`19093b0`](https://github.com/ivansaul/codigo_facilito_downloader/commit/19093b0571718d53d4916a449f85e0c409b473e7))
+
 ## v0.1.0 (2024-11-23)
 
 ### Chore
