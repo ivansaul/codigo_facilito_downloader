@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## v0.3.0 (2024-11-24)
+
+### Documentation
+
+* docs: add a link to previous stable version ([`258e8ea`](https://github.com/ivansaul/codigo_facilito_downloader/commit/258e8eab6c0d7ba5c08c0f6d7f5b918c29e073ce))
+
+* docs: update README TODO ([`2ca31ce`](https://github.com/ivansaul/codigo_facilito_downloader/commit/2ca31ce4b9f36285a980e3ad12db8bced90260e6))
+
+### Feature
+
+* feat: add cookie-based login
+
+- Implement a new `set-cookies` command for CLI login using cookies
+- Provide instructions for exporting cookies
+- Add a helper function to normalize cookie format ([`41228fe`](https://github.com/ivansaul/codigo_facilito_downloader/commit/41228fe8fb11c404366bd6b239ea6e25371f1cac))
+
+### Unknown
+
+* Merge pull request #48 from ivansaul/refactor
+
+docs: update README TODO ([`933890e`](https://github.com/ivansaul/codigo_facilito_downloader/commit/933890eef3824e8b4c15f337acb2680697cdb595))
+
 ## v0.2.1 (2024-11-23)
 
 ### Fix
