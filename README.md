@@ -49,8 +49,6 @@ con un script creado con ***`Python`*** y ***`Playwright`***.
 
 ## Instalación
 
-Puedes instalar `poetry` en tu sistema siguiendo estos pasos:
-
 1. Instala `poetry` en tu sistema:
 
    ```console
