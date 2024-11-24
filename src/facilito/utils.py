@@ -182,3 +182,25 @@ def get_unit_type(url: str) -> TypeUnit:
         return TypeUnit.QUIZ
 
     raise UnitError()
+
+
+def normalize_cookies(cookies: list[dict]) -> list[dict]:
+    """
+    Normalize cookies to a common format.
+
+    :param list[dict] cookies: List of cookies to normalize.
+    :return list[dict]: Normalized list of cookies.
+    """
+    import copy
+
+    same_site_valid_values = {"Lax", "Strict", "None"}
+    same_site_key = "sameSite"
+
+    cookies = copy.deepcopy(cookies)
+    for cookie in cookies:
+        same_site = cookie.get(same_site_key, "None")
+        same_site = same_site.replace("unspecified", "Lax").capitalize()
+        same_site = same_site if same_site in same_site_valid_values else "None"
+        cookie[same_site_key] = same_site
+
+    return cookies

@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 
 import typer
 from typing_extensions import Annotated
@@ -17,6 +18,28 @@ def login():
         facilito login
     """
     asyncio.run(_login())
+
+
+@app.command()
+def set_cookies(
+    path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            help="Path to cookies.json",
+            show_default=False,
+        ),
+    ],
+):
+    """
+    Login to Codigo Facilito using your cookies.
+
+    Usage:
+        facilito set-cookies cookies.json
+    """
+    asyncio.run(_set_cookies(path))
 
 
 @app.command()
@@ -108,3 +131,8 @@ async def _logout():
 async def _download(url: str, **kwargs):
     async with AsyncFacilito() as client:
         await client.download(url, **kwargs)
+
+
+async def _set_cookies(path: Path):
+    async with AsyncFacilito() as client:
+        await client.set_cookies(path)

@@ -1,13 +1,17 @@
+from pathlib import Path
+
 from playwright.async_api import BrowserContext, Page, async_playwright
 from playwright_stealth import Stealth
 
 from . import collectors
 from .constants import BASE_URL, LOGIN_URL, SESSION_FILE
 from .errors import LoginError
+from .helpers import read_json
 from .logger import logger
 from .utils import (
     load_state,
     login_required,
+    normalize_cookies,
     save_state,
     try_except_request,
 )
@@ -120,6 +124,13 @@ class AsyncFacilito:
             raise Exception(
                 "Please provide a valid URL, either a video, lecture or course."
             )
+
+    @try_except_request
+    async def set_cookies(self, path: Path):
+        cookies = normalize_cookies(read_json(path))  # type: ignore
+        await self.context.add_cookies(cookies)  # type: ignore
+        await self._set_profile()
+        await save_state(self.context, SESSION_FILE)
 
     @try_except_request
     async def _set_profile(self):

@@ -90,11 +90,34 @@ El `CLI` proporciona los siguientes comandos:
 
 ### Login
 
-Inicia sesión en Código Facilito abriendo una ventana del navegador.
+Puedes iniciar sesión de dos formas:
+
+#### Email | Facebook | Google
 
 ```console
 facilito login
 ```
+
+#### Cookies
+
+Este método solo se recomienda si tienes problemas de autenticación mediante el método anterior.
+
+```console
+facilito set-cookies path/to/cookies.json
+```
+
+<details>
+
+<summary>Tips & Tricks</summary>
+
+## Exportar las cookies
+
+1. Instala la extensión de Chrome [***`GetCookies`***][cookies-extension].
+2. Inicia sesión en Código Facilito utilizando el navegador Chrome.
+3. Recarga la página.
+4. Exporta las cookies en formato `json` desde la extensión de Chrome.
+
+</details>
 
 ### Logout
 
@@ -172,3 +195,4 @@ Aquí tienes una lista de algunos de mis otros repositorios. ¡Échales un vista
 [chocolatey]: https://community.chocolatey.org
 [ffmpeg-youtube]: https://youtu.be/JR36oH35Fgg?si=Gerco7SP8WlZVaKM
 [previous-version]: https://github.com/ivansaul/codigo_facilito_downloader/tree/e39524cf4a925fb036c903b5d82306f9e2088ca6
+[cookies-extension]: https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc
