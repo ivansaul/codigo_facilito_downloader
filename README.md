@@ -41,20 +41,98 @@ con un script creado con ***`Python`*** y ***`Playwright`***.
 
 ## Instalación | Actualización
 
-Para [`instalar` | `actualizar` ], ejecuta el siguiente comando en tu terminal:
+### Con **`poetry`** **(recomendado)**
 
-```console
-pip install -U git+https://github.com/ivansaul/codigo_facilito_downloader.git
-```
+<details>
 
-Instala las dependencias de `playwright`:
+<summary>Instrucciones</summary>
 
-```console
-playwright install chromium
-```
+## Instalación
 
-> [!IMPORTANT]
-> El script utiliza ***`ffmpeg`***, como un subproceso, así que asegúrate de tener instalado y actualizado.
+Puedes instalar `poetry` en tu sistema siguiendo estos pasos:
+
+1. Instala `poetry` en tu sistema:
+
+   ```console
+   pip install poetry
+   ```
+
+2. Clona el repositorio:
+
+   ```console
+   git clone https://github.com/ivansaul/codigo_facilito_downloader.git
+   ```
+
+3. Entra al directorio del repositorio:
+
+   ```console
+   cd codigo_facilito_downloader
+   ```
+
+4. Instala el paquete:
+
+   ```console
+   poetry install
+   ```
+
+5. Instala las dependencias de `playwright`:
+
+   ```console
+   playwright install chromium
+   ```
+
+## Actualización
+
+1. Entra al directorio del repositorio:
+
+   ```console
+   cd codigo_facilito_downloader
+   ```
+
+2. Actualiza el repositorio:
+
+   ```console
+   git reset --hard HEAD
+   git pull
+   ```
+
+3. Actualiza el paquete:
+
+   ```console
+   poetry install
+   ```
+
+4. Actualiza las dependencias de `playwright`:
+
+   ```console
+   playwright install chromium
+   ```
+
+</details>
+
+### Con **`pip`**
+
+<details>
+
+<summary>Instrucciones</summary>
+
+## Instalación y actualización
+
+1. Instala el paquete:
+
+   ```console
+   pip install -U git+https://github.com/ivansaul/codigo_facilito_downloader.git
+   ```
+
+2. Instala las dependencias de `playwright`:
+
+   ```console
+   playwright install chromium
+   ```
+
+</details>
+
+<br>
 
 <details>
 
@@ -137,7 +215,7 @@ facilito download <url> [OPCIONES]
 
 Opciones:
 
-- `--quality`, `-q`: Especifica la calidad del video (por defecto: `MAX`). Opciones disponibles: `[max|1080p|720p|480p|360p|min]`.
+- `--quality`, `-q`: Especifica la calidad del video (por defecto: `max`). Opciones disponibles: `[max|1080p|720p|480p|360p|min]`.
 - `--override`, `-w`: Sobrescribe el archivo existente si existe (por defecto: `False`).
 - `--threads`, `-t`: Número de hilos a utilizar (por defecto: `10`).
 
@@ -156,6 +234,11 @@ facilito download URL -q 720p -t 5
 
 > [!IMPORTANT]
 > Asegúrate de estar logueado antes de intentar descargar los cursos.
+
+<br>
+
+> [!IMPORTANT]
+> El script utiliza ***`ffmpeg`***, como un subproceso, así que asegúrate de tener instalado y actualizado.
 
 <br>
 
