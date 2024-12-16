@@ -44,6 +44,9 @@ async def _download_vsd():
         ("windows", "x86_64"): release_url.format(
             version=version, bin="x86_64-pc-windows-msvc.zip"
         ),
+        ("windows", "amd64"): release_url.format(
+            version=version, bin="x86_64-pc-windows-msvc.zip"
+        ),
         ("windows", "arm64"): release_url.format(
             version=version, bin="aarch64-pc-windows-msvc.zip"
         ),
