@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## v0.4.0 (2024-12-16)
+
+### Documentation
+
+* docs: remove redundant poetry installation steps. ([`e23c8e7`](https://github.com/ivansaul/codigo_facilito_downloader/commit/e23c8e77c626855cee9486b263f02b2ccd51b7c3))
+
+* docs: improve installation instructions
+
+Add recommended `poetry` installation instructions, provide detailed installation and upgrade steps using `poetry` and `pip` ([`e15d25c`](https://github.com/ivansaul/codigo_facilito_downloader/commit/e15d25c4f53c6ff7b6838e53996507b0c1d0d59f))
+
+### Feature
+
+* feat: add support for Windows AMD64 architecture
+
+- Add the &#34;windows, amd64&#34; mapping to the binary URLs, pointing to the 
+x86_64-pc-windows-msvc.zip binary. This expands the supported Windows architectures.
+- This change resolves the error: [ERROR] Unsupported platform: windows amd64.
+
+Thanks to @Isaac-opz for the contribution! ([`5dba1a3`](https://github.com/ivansaul/codigo_facilito_downloader/commit/5dba1a3f8d934805ab07777588324da177d21b93))
+
+### Unknown
+
+* Merge pull request #51 from ivansaul/refactor
+
+docs: remove redundant poetry installation steps. ([`ead5a08`](https://github.com/ivansaul/codigo_facilito_downloader/commit/ead5a0846a1aed37d68bbefa4a33073cb26c5014))
+
+* Merge pull request #50 from ivansaul/refactor
+
+docs: improve installation instructions ([`365c75c`](https://github.com/ivansaul/codigo_facilito_downloader/commit/365c75ca499ff2be25c467823a0181299669f411))
+
 ## v0.3.0 (2024-11-24)
 
 ### Documentation
