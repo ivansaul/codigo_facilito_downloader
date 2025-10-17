@@ -248,6 +248,10 @@ facilito download URL -q 720p -t 5
 > [!NOTE]
 > La versión actual es inestable y puede contener errores. Si necesitas una versión más estable, considera usar la versión anterior [***[VER]***][previous-version].
 
+## Cómo contribuir
+
+¡Todas las contribuciones son bienvenidas!. Antes de enviar cambios, revisa la guía [CONTRIBUTING.md](./CONTRIBUTING.md) para conocer las pautas del proyecto.
+
 ## Contribuidores
 
 <a href="https://github.com/ivansaul/codigo_facilito_downloader/graphs/contributors">
