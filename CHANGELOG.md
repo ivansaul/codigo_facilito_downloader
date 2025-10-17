@@ -14,7 +14,7 @@ Add recommended `poetry` installation instructions, provide detailed installatio
 
 * feat: add support for Windows AMD64 architecture
 
-- Add the &#34;windows, amd64&#34; mapping to the binary URLs, pointing to the 
+- Add the &#34;windows, amd64&#34; mapping to the binary URLs, pointing to the
 x86_64-pc-windows-msvc.zip binary. This expands the supported Windows architectures.
 - This change resolves the error: [ERROR] Unsupported platform: windows amd64.
 
