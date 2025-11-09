@@ -12,7 +12,7 @@ from ..utils import get_unit_type
 async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
     """
     Fetch all modules from a bootcamp page.
-    
+
     Bootcamp structure:
     - Each module is collapsible section (Módulo 1, Módulo 2, etc.)
     - Each module contains multiple classes/units
@@ -49,18 +49,26 @@ async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
             # Module name is in the header with class "f-green-text--2"
             MODULE_NAME_SELECTOR = ".collapsible-header span.f-green-text"
             UNITS_SELECTOR = ".collapsible-body ul a"
-            
+
             # Get module name
-            module_name_elem = modules_selectors.nth(i).locator(MODULE_NAME_SELECTOR).first
+            module_name_elem = (
+                modules_selectors.nth(i).locator(MODULE_NAME_SELECTOR).first
+            )
             module_name = await module_name_elem.text_content()
 
             if not module_name:
                 # Try alternative selector
                 MODULE_NAME_ALT_SELECTOR = ".collapsible-header h4"
-                module_name = await modules_selectors.nth(i).locator(MODULE_NAME_ALT_SELECTOR).first.text_content()
+                module_name = (
+                    await modules_selectors.nth(i)
+                    .locator(MODULE_NAME_ALT_SELECTOR)
+                    .first.text_content()
+                )
                 if not module_name:
-                    raise CourseError(f"Could not extract module name for module {i+1}")
-            
+                    raise CourseError(
+                        f"Could not extract module name for module {i + 1}"
+                    )
+
             # Clean module name: remove newlines, extra spaces, and tabs
             module_name = " ".join(module_name.strip().split())
 
@@ -76,20 +84,24 @@ async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
             for j in range(units_count):
                 # Unit name is in nested p tags with class "ibm"
                 UNIT_NAME_SELECTOR = "p.ibm.f-text-16"
-                
-                unit_name = await units_locators.nth(j).locator(UNIT_NAME_SELECTOR).first.text_content()
+
+                unit_name = (
+                    await units_locators.nth(j)
+                    .locator(UNIT_NAME_SELECTOR)
+                    .first.text_content()
+                )
                 unit_url = await units_locators.nth(j).first.get_attribute("href")
 
                 if not unit_name or not unit_url:
                     # Skip invalid units
                     continue
-                
+
                 # Clean unit name: remove newlines, extra spaces, and tabs
                 unit_name = " ".join(unit_name.strip().split())
-                
+
                 # Build full URL
                 full_url = BASE_URL + unit_url
-                
+
                 # For bootcamp lessons, we need to follow the redirect to get the actual video URL
                 # The URLs like /cursos/bootcamp-...?play=true redirect to /videos/...
                 # We'll detect the type after getting the final URL
@@ -101,10 +113,10 @@ async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
                     # Get final URL after redirects
                     final_url = temp_page.url
                     await temp_page.close()
-                    
+
                     # Now determine the type based on final URL
                     unit_type = get_unit_type(final_url)
-                    
+
                     units.append(
                         Unit(
                             type=unit_type,
@@ -113,7 +125,7 @@ async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
                             url=final_url,
                         )
                     )
-                except Exception as e:
+                except Exception:
                     # If redirect fails, skip this unit
                     try:
                         await temp_page.close()
@@ -139,14 +151,14 @@ async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
 async def fetch_bootcamp(context: BrowserContext, url: str) -> Bootcamp:
     """
     Fetch all information from a bootcamp.
-    
+
     Args:
         context: Playwright browser context
         url: URL of the bootcamp (e.g., https://codigofacilito.com/programas/ingles-conversacional)
-    
+
     Returns:
         Bootcamp model with all modules and units
-    
+
     Raises:
         CourseError: If bootcamp information cannot be extracted
     """
@@ -165,7 +177,7 @@ async def fetch_bootcamp(context: BrowserContext, url: str) -> Bootcamp:
 
         if not name:
             raise CourseError("Could not extract bootcamp name")
-        
+
         # Clean bootcamp name: remove newlines, extra spaces, and tabs
         name = " ".join(name.strip().split())
 

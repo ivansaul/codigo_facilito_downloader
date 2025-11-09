@@ -19,7 +19,7 @@ async def download_bootcamp(context: BrowserContext, bootcamp: Bootcamp, **kwarg
 
     :param bool override: Override existing file if exists (default: False).
     :param int threads: Number of threads to use (default: 10).
-    
+
     Directory structure:
         Facilito/
         └── bootcamp-name/
