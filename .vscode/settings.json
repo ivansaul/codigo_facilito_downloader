@@ -1,5 +1,10 @@
 {
     "editor.formatOnSave": true,
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            "file": "./.github/git-commit-messages-instructions.md"
+        }
+    ],
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.codeActionsOnSave": {
