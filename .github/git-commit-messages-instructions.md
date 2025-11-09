@@ -15,6 +15,14 @@ These instructions guide GitHub Copilot in generating Git commit messages that a
 5. ✅ **ALWAYS use correct type hierarchy** for mixed commits: code > docs > chore
 6. ✅ **NEVER use forbidden patterns**: `feat(docs)`, `refactor(docs)`, `fix(docs)`, `chore(docs)`, `feat(settings)`, `refactor(config)`
 
+**⚠️ SPECIAL CASE: MODIFYING THIS FILE ITSELF (.github/git-commit-messages-instructions.md)**
+
+- **EVEN THOUGH this is a .md file, you MUST still follow ALL rules**
+- **NEVER generate simple messages like "Add instructions" or "Update rules"**
+- **ALWAYS include proper body with file list and explanations**
+- **Example**: When modifying this file + settings.json, use type `docs` with FULL body structure
+- **This file being .md does NOT exempt it from requiring detailed commit messages**
+
 **IF YOU GENERATE A COMMIT MESSAGE THAT VIOLATES THESE RULES, YOU HAVE FAILED.**
 
 ---
@@ -76,12 +84,15 @@ These instructions guide GitHub Copilot in generating Git commit messages that a
         - Modifying Markdown (.md) files (README.md, CONTRIBUTING.md, CHANGELOG.md, git-commit-messages-instructions.md, etc.)
         - Creating new documentation files (.md, .rst, .txt, etc.)
         - **CRITICAL RULE**: If ONLY .md or documentation files are modified/created, use `docs` type
+        - **⚠️ IMPORTANT**: Being a .md file does NOT mean "use simple commit message" - ALL rules still apply!
+        - **⚠️ MULTI-FILE .md COMMITS**: 2+ .md files REQUIRE body with file list, same as any other type
         - **ABSOLUTELY FORBIDDEN**: `feat(docs)`, `refactor(docs)`, `fix(docs)`, `chore(docs)` ← NEVER EVER USE THESE
         - **ALWAYS CORRECT**: `docs` or `docs(scope)` where scope is optional filename (e.g., `docs(readme)`, `docs(git-commit)`, or just `docs`)
         - **WHY**: `docs` IS the type (describes WHAT changed), NOT a scope. Scope describes WHERE (which file).
         - **PATTERN**: `docs` type + optional `(filename)` scope → `docs(readme): ...` ✅ NOT `feat(docs): ...` ❌
         - **FOR MIXED COMMITS** (code + docs): Use code type (feat/fix/refactor), mention docs in body, NEVER use `feat(docs)`
         - **IMPORTANT**: Docstrings and inline comments in .py files are NOT `docs` type - they follow the code change type (see Python-Specific Guidelines)
+        - **REMEMBER**: docs type ≠ simple message allowed. Same structure requirements apply (body, file list, etc.)
       - `style`: Changes that do not affect the meaning of the code (whitespace, formatting with ruff, import ordering, etc.).
       - `test`: Adding missing tests or correcting existing tests (pytest).
       - `revert`: Reverts a previous commit (use footer to reference reverted commits).
@@ -125,6 +136,9 @@ These instructions guide GitHub Copilot in generating Git commit messages that a
     - "Simple, self-explanatory single-file changes"
     - "The title completely describes the change"
     - "Trivial fixes or updates (e.g., 'docs: fix typo in README')"
+    - "**⚠️ CRITICAL**: Multi-file changes (.md or not) ALWAYS need body - no exceptions!"
+    - "**⚠️ CRITICAL**: 'docs' type does NOT mean body is optional for 2+ files"
+    - "Example: 2 .md files changed = body REQUIRED, even if both are documentation"
   - "**BODY FORMAT AND STYLE:**"
     - "Write in **past tense** (describe what was done, not what to do)"
     - "Examples: 'Added feature X', 'Implemented Y', 'Fixed Z', 'Updated configuration'"
@@ -1384,6 +1398,14 @@ For questions or clarification, refer to:
 Add GitHub Copilot chat commit message generation instructions to VSCode settings
 ```
 
+```
+Update commit message instructions and settings
+```
+
+```
+Configure Copilot instructions
+```
+
 ✅ **CORRECT (what Copilot MUST generate):**
 
 ```
@@ -1406,6 +1428,35 @@ This ensures consistent commit messages for Python/Playwright codebase.
 - Missing body (required for 2+ files)
 - Too generic (doesn't explain what or why)
 - Not useful for changelog or code review
+- **⚠️ Being .md files does NOT exempt from body requirement**
+
+---
+
+**ERROR #1b: Assuming .md Files Can Have Simple Messages**
+
+❌ **WRONG ASSUMPTION:**
+
+"It's just documentation files (.md), so a simple message is OK"
+
+✅ **CORRECT UNDERSTANDING:**
+
+"Even if ALL files are .md, I MUST include body for 2+ files with proper structure"
+
+**EXAMPLE:**
+
+❌ WRONG: `docs: update documentation`
+✅ CORRECT:
+
+```
+docs: update installation and contribution guides
+
+Updated installation steps to reflect Poetry usage and added
+comprehensive commit message examples for contributors.
+
+Modified files (2):
+- README.md: Updated installation section
+- CONTRIBUTING.md: Added commit message guidelines
+```
 
 ---
 
