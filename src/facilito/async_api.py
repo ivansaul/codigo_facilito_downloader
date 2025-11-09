@@ -131,7 +131,8 @@ class AsyncFacilito:
 
         else:
             raise Exception(
-                "Please provide a valid URL, either a video, lecture, course, or bootcamp."
+                "Please provide a valid URL, either a video, lecture, "
+                "course, or bootcamp."
             )
 
     @try_except_request

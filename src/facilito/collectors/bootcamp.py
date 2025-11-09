@@ -102,12 +102,15 @@ async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
                 # Build full URL
                 full_url = BASE_URL + unit_url
 
-                # For bootcamp lessons, we need to follow the redirect to get the actual video URL
-                # The URLs like /cursos/bootcamp-...?play=true redirect to /videos/...
+                # For bootcamp lessons, we need to follow the redirect
+                # to get the actual video URL
+                # The URLs like /cursos/bootcamp-...?play=true redirect
+                # to /videos/...
                 # We'll detect the type after getting the final URL
                 try:
                     # Open page and wait for navigation to complete
-                    # We only need domcontentloaded, not networkidle, to get video metadata
+                    # We only need domcontentloaded, not networkidle,
+                    # to get video metadata
                     temp_page = await page.context.new_page()
                     await temp_page.goto(full_url, wait_until="domcontentloaded")
                     # Get final URL after redirects
@@ -129,7 +132,7 @@ async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
                     # If redirect fails, skip this unit
                     try:
                         await temp_page.close()
-                    except:
+                    except Exception:
                         pass
                     continue
 
