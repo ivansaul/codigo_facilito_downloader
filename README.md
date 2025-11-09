@@ -11,8 +11,8 @@
     <b><a href="https://github.com/ivansaul/codigo_facilito_downloader">Codigo Facilito Downloader</a></b>
 </h1>
 
-Descarga automatizada de los cursos de ***`Codigo Facilito`***<br />
-con un script creado con ***`Python`*** y ***`Playwright`***.
+Descarga automatizada de los cursos de **_`Codigo Facilito`_**<br />
+con un script creado con **_`Python`_** y **_`Playwright`_**.
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/ivansaul/codigo_facilito_downloader)
 ![GitHub stars](https://img.shields.io/github/stars/ivansaul/codigo_facilito_downloader)
@@ -37,7 +37,6 @@ con un script creado con ***`Python`*** y ***`Playwright`***.
 - [ ] Implement custom progress bar
 - [ ] Improve error handling
 - [ ] Write tests
-- [ ] Add support for bootcamp
 
 ## Instalación | Actualización
 
@@ -188,7 +187,7 @@ facilito set-cookies path/to/cookies.json
 
 ## Exportar las cookies
 
-1. Instala la extensión de Chrome [***`GetCookies`***][cookies-extension].
+1. Instala la extensión de Chrome [**_`GetCookies`_**][cookies-extension].
 2. Inicia sesión en Código Facilito utilizando el navegador Chrome.
 3. Recarga la página.
 4. Exporta las cookies en formato `json` desde la extensión de Chrome.
@@ -205,7 +204,7 @@ facilito logout
 
 ### Descargar
 
-Descarga un curso, video o lección de Código Facilito.
+Descarga un bootcamp, curso, video o lección de Código Facilito.
 
 ```console
 facilito download <url> [OPCIONES]
@@ -222,9 +221,19 @@ Opciones:
 
 Ejemplos:
 
+**Descargar un bootcamp completo:**
+
+```console
+facilito download https://codigofacilito.com/programas/ingles-conversacional
+```
+
+**Descargar un curso:**
+
 ```console
 facilito download https://codigofacilito.com/cursos/docker
 ```
+
+**Descargar con opciones personalizadas:**
 
 ```console
 facilito download URL -q 720p -t 5
@@ -236,7 +245,7 @@ facilito download URL -q 720p -t 5
 <br>
 
 > [!IMPORTANT]
-> El script utiliza ***`ffmpeg`***, como un subproceso, así que asegúrate de tener instalado y actualizado.
+> El script utiliza **_`ffmpeg`_**, como un subproceso, así que asegúrate de tener instalado y actualizado.
 
 <br>
 
@@ -246,7 +255,7 @@ facilito download URL -q 720p -t 5
 <br>
 
 > [!NOTE]
-> La versión actual es inestable y puede contener errores. Si necesitas una versión más estable, considera usar la versión anterior [***[VER]***][previous-version].
+> La versión actual es inestable y puede contener errores. Si necesitas una versión más estable, considera usar la versión anterior [**_[VER]_**][previous-version].
 
 ## Cómo contribuir
 
@@ -275,7 +284,7 @@ Aquí tienes una lista de algunos de mis otros repositorios. ¡Échales un vista
 [![Bookmark Style Card](https://svg.bookmark.style/api?url=https://github.com/ivansaul/flutter_todo_app&mode=light&style=horizontal)](https://github.com/ivansaul/flutter_todo_app)
 [![Bookmark Style Card](https://svg.bookmark.style/api?url=https://github.com/ivansaul/Flutter-UI-Kit&mode=light&style=horizontal)](https://github.com/ivansaul/Flutter-UI-Kit)
 
-[scoop]:https://scoop.sh/
+[scoop]: https://scoop.sh/
 [ffmpeg]: https://ffmpeg.org
 [chocolatey]: https://community.chocolatey.org
 [ffmpeg-youtube]: https://youtu.be/JR36oH35Fgg?si=Gerco7SP8WlZVaKM

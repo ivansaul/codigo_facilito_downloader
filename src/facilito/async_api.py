@@ -99,12 +99,17 @@ class AsyncFacilito:
 
     @try_except_request
     @login_required
+    async def fetch_bootcamp(self, url: str):
+        return await collectors.fetch_bootcamp(self.context, url)
+
+    @try_except_request
+    @login_required
     async def download(self, url: str, **kwargs):
         from pathlib import Path
 
-        from .downloaders import download_course, download_unit
+        from .downloaders import download_bootcamp, download_course, download_unit
         from .models import TypeUnit
-        from .utils import is_course, is_lecture, is_quiz, is_video
+        from .utils import is_bootcamp, is_course, is_lecture, is_quiz, is_video
 
         if is_video(url) or is_lecture(url) or is_quiz(url):
             unit = await self.fetch_unit(url)
@@ -120,9 +125,13 @@ class AsyncFacilito:
             course = await self.fetch_course(url)
             await download_course(self.context, course, **kwargs)
 
+        elif is_bootcamp(url):
+            bootcamp = await self.fetch_bootcamp(url)
+            await download_bootcamp(self.context, bootcamp, **kwargs)
+
         else:
             raise Exception(
-                "Please provide a valid URL, either a video, lecture or course."
+                "Please provide a valid URL, either a video, lecture, course, or bootcamp."
             )
 
     @try_except_request
