@@ -57,3 +57,20 @@ class Course(BaseModel):
     url: str
     chapters: list[Chapter]
     description: str | None = None
+
+
+class Module(BaseModel):
+    id: int | None = None
+    name: str
+    slug: str
+    units: list[Unit]
+    description: str | None = None
+
+
+class Bootcamp(BaseModel):
+    id: int | None = None
+    name: str
+    slug: str
+    url: str
+    modules: list[Module]
+    description: str | None = None

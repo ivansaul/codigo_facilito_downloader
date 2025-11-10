@@ -58,7 +58,7 @@ def download(
     url: Annotated[
         str,
         typer.Argument(
-            help="The URL of the course | video | lecture to download.",
+            help="The URL of the bootcamp | course | video | lecture to download.",
             show_default=False,
         ),
     ],
@@ -93,15 +93,17 @@ def download(
     ] = 10,
 ):
     """
-    Download a course | video | lecture from the given URL.
+    Download a bootcamp | course | video | lecture from the given URL.
 
     Arguments:
-        url: str - The URL of the course to download.
+        url: str - The URL of the bootcamp, course, video, or lecture to download.
 
     Usage:
         facilito download <url>
 
-    Example:
+    Examples:
+        facilito download https://codigofacilito.com/programas/ingles-conversacional
+
         facilito download https://codigofacilito.com/cursos/docker
 
         facilito download https://codigofacilito.com/videos/...

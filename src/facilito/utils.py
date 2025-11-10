@@ -143,6 +143,21 @@ def is_course(url: str) -> bool:
     return "/cursos/" in url
 
 
+def is_bootcamp(url: str) -> bool:
+    """
+    Check if a URL is a bootcamp.
+
+    :param str url: URL to check.
+    :return bool: True if the URL is a bootcamp, False otherwise.
+
+    Example
+    -------
+    >>> is_bootcamp("https://codigofacilito.com/programas/...")
+    True
+    """
+    return "/programas/" in url
+
+
 def is_quiz(url: str) -> bool:
     """
     Check if a URL is a quiz.
