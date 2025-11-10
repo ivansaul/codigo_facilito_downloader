@@ -1,5 +1,79 @@
 # CHANGELOG
 
+## v0.5.0 (2025-11-10)
+
+### Chore
+
+* chore: add /Facilito/ to .gitignore to exclude project-specific files ([`dd114dd`](https://github.com/ivansaul/codigo_facilito_downloader/commit/dd114dd38f8835bd9820ceeda0019de2a71aca08))
+
+### Documentation
+
+* docs: refactor Copilot instructions for clarity and structure
+
+- Updated project overview to include bootcamps in the description.
+- Enhanced the architecture section by clearly separating collectors and downloaders.
+- Improved descriptions of collectors and downloaders with specific file structures.
+- Revised key conventions and patterns for better organization and clarity.
+- Added details about entity model hierarchy and updated authentication state management.
+- Clarified error handling strategy and file naming conventions.
+- Specified the location of the VSD binary cache directory.
+- Added a note on bootcamp redirects in the testing strategy. ([`10dd4fa`](https://github.com/ivansaul/codigo_facilito_downloader/commit/10dd4faf7a77592a439b62e0686a8e798268caa6))
+
+* docs: update git commit message instructions for .md files
+
+Enhanced the guidelines for generating commit messages related to .md files.
+Clarified that even for multi-file changes involving only documentation, a detailed body is required.
+Updated examples to emphasize the necessity of including file lists and explanations for changes made to multiple .md files. ([`5604a91`](https://github.com/ivansaul/codigo_facilito_downloader/commit/5604a91d93c1aeb2d60b53ec10a856fc6660b789))
+
+* docs: configure commit message generation for Copilot
+
+Added reference to git-commit-messages-instructions.md in VSCode settings to enable automatic commit message generation following Conventional Commits specification for this project.
+
+Modified files (2):
+- .vscode/settings.json: Added Copilot instructions reference
+- .github/git-commit-messages-instructions.md: Created rules ([`3c3e42d`](https://github.com/ivansaul/codigo_facilito_downloader/commit/3c3e42d2cbdcebea7e7e5c4e985e0264e8e1530e))
+
+* docs: Add comprehensive AI agent instructions for Codigo Facilito Downloader, detailing project overview, architecture, workflows, conventions, and testing strategy. ([`0a0fe02`](https://github.com/ivansaul/codigo_facilito_downloader/commit/0a0fe02c4724dba3daa9cab8246bd0fda51f1ce2))
+
+* docs: add contributing guidelines and update README ([`6884ecc`](https://github.com/ivansaul/codigo_facilito_downloader/commit/6884ecc6919fa344df78ca71b4692da97f317b00))
+
+### Feature
+
+* feat(bootcamp): add bootcamp support to downloader
+
+- Implemented bootcamp fetching and downloading functionality.
+- Added `fetch_bootcamp` method in `AsyncFacilito` class.
+- Created `bootcamp.py` in collectors for bootcamp module fetching.
+- Added `download_bootcamp` function in downloaders for saving bootcamp data.
+- Updated CLI to accept bootcamp URLs for downloading.
+- Enhanced models to include Bootcamp and Module structures.
+- Introduced utility function `is_bootcamp` to identify bootcamp URLs. ([`410ae34`](https://github.com/ivansaul/codigo_facilito_downloader/commit/410ae34d9b64e695a950c23f76dad560522c7ad3))
+
+### Refactor
+
+* refactor: error message formatting and improve comments in bootcamp module fetching
+
+- Split long error message into multiple lines for better readability in AsyncFacilito class.
+- Enhance comments in _fetch_bootcamp_modules function to clarify the purpose of following redirects and waiting for navigation. ([`fbff624`](https://github.com/ivansaul/codigo_facilito_downloader/commit/fbff624959790375372e95a81492e566bf76b123))
+
+### Unknown
+
+* Merge pull request #61 from cristofima/feature/bootcamps
+
+feat(downloaders): add bootcamp download support ([`eedf032`](https://github.com/ivansaul/codigo_facilito_downloader/commit/eedf0321e9cff5cfb7398e8b6bb2d2442bfc03cf))
+
+* [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+for more information, see https://pre-commit.ci ([`a7fdbd5`](https://github.com/ivansaul/codigo_facilito_downloader/commit/a7fdbd522dd2e910c5375445530bf83f9edd5bbc))
+
+* Merge pull request #59 from ivansaul/docs/contributing
+
+docs: add contributing guidelines and update README ([`2496667`](https://github.com/ivansaul/codigo_facilito_downloader/commit/2496667a1d20030527b225daf5666de4ec7a4e46))
+
+* [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+for more information, see https://pre-commit.ci ([`7fbf3bc`](https://github.com/ivansaul/codigo_facilito_downloader/commit/7fbf3bccf797176688f4ac851b28edd8243dba10))
+
 ## v0.4.0 (2024-12-16)
 
 ### Documentation
@@ -14,7 +88,7 @@ Add recommended `poetry` installation instructions, provide detailed installatio
 
 * feat: add support for Windows AMD64 architecture
 
-- Add the &#34;windows, amd64&#34; mapping to the binary URLs, pointing to the
+- Add the &#34;windows, amd64&#34; mapping to the binary URLs, pointing to the 
 x86_64-pc-windows-msvc.zip binary. This expands the supported Windows architectures.
 - This change resolves the error: [ERROR] Unsupported platform: windows amd64.
 
