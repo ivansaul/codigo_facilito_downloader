@@ -3,14 +3,14 @@ name: Test
 on:
   push:
     paths-ignore:
-      - '*.md'
+      - "*.md"
 
     branches:
       - develop
 
   pull_request:
     paths-ignore:
-      - '*.md'
+      - "*.md"
 
 jobs:
   test:
@@ -33,7 +33,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'poetry'
+          cache: "poetry"
 
       - name: Install Dependencies
         run: poetry install --with=dev
