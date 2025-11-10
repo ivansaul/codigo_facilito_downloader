@@ -3,14 +3,14 @@ name: Test
 on:
   push:
     paths-ignore:
-      - '*.md'
+      - "*.md"
 
     branches:
       - develop
 
   pull_request:
     paths-ignore:
-      - '*.md'
+      - "*.md"
 
 jobs:
   test:
@@ -29,22 +29,14 @@ jobs:
         shell: bash
         run: pipx install poetry
 
-      - name: Install FFmpeg
-        uses: AnimMouse/setup-ffmpeg@v1
-        with:
-          version: master
-
       - name: Setup | Install Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'poetry'
+          cache: "poetry"
 
       - name: Install Dependencies
         run: poetry install --with=dev
-
-      - name: Install Playwright Browsers
-        run: poetry run python -m playwright install --with-deps
 
       - name: Lint with Ruff
         run: poetry run ruff check --output-format=github .
