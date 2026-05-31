@@ -4,6 +4,8 @@ import platform
 import shutil
 import tarfile
 import zipfile
+import json
+import urllib.request  # Usamos la librería nativa para la API de GitHub
 from pathlib import Path
 
 from ..constants import APP_NAME
@@ -22,10 +24,23 @@ async def _download_vsd():
     system = platform.system().lower()  # linux, darwin, windows
     arch = platform.machine().lower()  # x86_64, arm64
 
-    version = "0.3.2"
+    try:
+        # Consultamos dinámicamente la API de GitHub para obtener la última versión real
+        api_url = "https://api.github.com/repos/clitic/vsd/releases/latest"
+        req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
+        
+        with urllib.request.urlopen(req) as response:
+            data = json.loads(response.read().decode())
+            # Extraemos la versión limpia (ej: "v0.4.3" -> "0.4.3")
+            version = data["tag_name"].lstrip('v')
+    except Exception as e:
+        # Fallback de seguridad por si falla la red o el límite de la API de GitHub
+        logger.warning(f"Could not fetch latest version from GitHub API: {e}. Using fallback 0.4.3")
+        version = "0.4.3"
 
+    # Estructura de URL oficial de GitHub para los assets de releases
     release_url = (
-        "https://github.com/clitic/vsd/releases/download/{version}/vsd-{version}-{bin}"
+        "https://github.com/clitic/vsd/releases/download/v{version}/vsd-v{version}-{bin}"
     )
 
     binary_urls = {
@@ -67,7 +82,7 @@ async def _download_vsd():
 
     if not VSD_BIN_PATH.exists():
         try:
-            logger.info("Downloading video downloader binary")
+            logger.info(f"Downloading video downloader binary (VSD v{version})")
             await download_file(binary_url, ZIP_PATH)
         except Exception:
             logger.error("Error downloading binary video downloader")
@@ -92,7 +107,6 @@ async def _download_vsd():
 
     if "PATH" not in os.environ:
         os.environ["PATH"] = BIN_DIR_PATH.as_posix()
-
     elif BIN_DIR_PATH.as_posix() not in os.environ["PATH"]:
         os.environ["PATH"] = BIN_DIR_PATH.as_posix() + os.pathsep + os.environ["PATH"]
 
@@ -104,7 +118,6 @@ def ffmpeg_required(func):
             logger.error("ffmpeg is not installed")
             return
         return await func(*args, **kwargs)
-
     return wrapper
 
 
@@ -115,18 +128,6 @@ async def download_video(
     quality: Quality = Quality.MAX,
     **kwargs,
 ):
-    """
-    Download a video from a URL.
-
-    :param str url: URL of the video.
-    :param Path path: Path to save the video.
-    :param Quality quality: Quality of the video (default: Quality.MIN).
-
-    :param list[dic] cookies: Cookies for authentication (default: None).
-    :param bool override: Override existing file if exists (default: False).
-    :param int threads: Number of threads to use (default: 10).
-    """
-
     import subprocess
 
     cookies = kwargs.get("cookies", None)
@@ -140,35 +141,34 @@ async def download_video(
         return
 
     TMP_COOKIES_PATH = TMP_DIR_PATH / f"{hashify(url)}.json"
-
     write_json(TMP_COOKIES_PATH, cookies)
 
+    # Comando limpio y compatible con las versiones modernas de VSD sin parámetros obsoletos
     command = [
         "vsd",
         "save",
         url,
-        "--cookies" if cookies else "",
-        TMP_COOKIES_PATH.as_posix() if cookies else "",
         "--directory",
         TMP_DIR_PATH.as_posix(),
         "--output",
         path.as_posix(),
-        "--quality",
-        quality.value,
-        "--skip-prompts",
         "--threads",
         str(threads),
+        "--no-certificate-checks",
+        "--user-agent",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     ]
 
-    # Download vsd binary if not exists
+    if cookies:
+        command.extend(["--cookies", TMP_COOKIES_PATH.as_posix()])
+
     await _download_vsd()
 
     try:
-        # TODO: Implement custom progress bar
-        subprocess.run(command)
+        env = os.environ.copy()
+        subprocess.run(command, env=env)
     except Exception:
         logger.exception(f"Error downloading [{path.name}]")
-
     finally:
         if TMP_COOKIES_PATH.exists():
             TMP_COOKIES_PATH.unlink()
