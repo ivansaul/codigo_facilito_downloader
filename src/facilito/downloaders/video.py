@@ -121,6 +121,9 @@ def ffmpeg_required(func):
     return wrapper
 
 
+import httpx
+import asyncio
+
 @ffmpeg_required
 async def download_video(
     url: str,
@@ -140,10 +143,91 @@ async def download_video(
         logger.info(f"[{path.name}] already exists")
         return
 
+    # === PLAN B: DESCARGADOR NATIVO PYTHON PARA BUNNYCDN ===
+    if "bun.codigofacilito.com" in url:
+        logger.info(f"Downloading natively from BunnyCDN: {path.name}")
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Origin": "https://codigofacilito.com",
+            "Referer": "https://codigofacilito.com/"
+        }
+
+        # 1. Obtenemos el archivo m3u8 real
+        async with httpx.AsyncClient(headers=headers, timeout=30.0) as client:
+            res = await client.get(url)
+            if res.status_code != 200:
+                logger.error(f"Error fetching playlist m3u8: {res.status_code}")
+                return
+            
+            # Buscamos todos los fragmentos videoX.ts
+            lines = res.text.splitlines()
+            ts_urls = [line for line in lines if line.endswith(".ts") or "video" in line]
+            
+            if not ts_urls:
+                logger.error("No TS video segments found in manifest")
+                return
+
+            # Construimos la URL base para los segmentos (.ts)
+            base_url = url.rsplit("/", 1)[0] + "/"
+            
+            # 2. Descarga paralela de segmentos en la carpeta temporal
+            segment_paths = []
+            segment_dir = TMP_DIR_PATH / hashify(url)
+            segment_dir.mkdir(parents=True, exist_ok=True)
+
+            async def download_segment(ts_uri, index):
+                ts_url = ts_uri if ts_uri.startswith("http") else base_url + ts_uri
+                seg_path = segment_dir / f"{index:04d}.ts"
+                
+                # Intentos de descarga con retries
+                for _ in range(3):
+                    try:
+                        seg_res = await client.get(ts_url)
+                        if seg_res.status_code == 200:
+                            seg_path.write_bytes(seg_res.content)
+                            return seg_path
+                    except Exception:
+                        await asyncio.sleep(1)
+                raise Exception(f"Failed to download segment {ts_url}")
+
+            # Lanzamos las descargas respetando el límite de hilos (threads)
+            semaphore = asyncio.Semaphore(threads)
+            
+            async def sem_download(ts_uri, index):
+                async with semaphore:
+                    return await download_segment(ts_uri, index)
+
+            tasks = [sem_download(ts_uri, i) for i, ts_uri in enumerate(ts_urls)]
+            try:
+                segment_paths = await asyncio.gather(*tasks)
+            except Exception as e:
+                logger.error(f"Error during parallel download: {e}")
+                return
+
+            # 3. Unimos los fragmentos usando ffmpeg de forma ultra rápida sin re-codificar
+            list_file_path = segment_dir / "input.txt"
+            with open(list_file_path, "w", encoding="utf-8") as f:
+                for p in sorted(segment_paths):
+                    f.write(f"file '{p.name}'\n")
+
+            ffmpeg_cmd = [
+                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                "-i", list_file_path.as_posix(),
+                "-c", "copy", path.as_posix()
+            ]
+            
+            subprocess.run(ffmpeg_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            # Limpieza de temporales
+            shutil.rmtree(segment_dir)
+            logger.info(f"Successfully downloaded: [{path.name}]")
+            return
+
+    # === FALLBACK ORIGINAL PARA CURSOS ANTIGUOS (VSD ORIGINAL) ===
     TMP_COOKIES_PATH = TMP_DIR_PATH / f"{hashify(url)}.json"
     write_json(TMP_COOKIES_PATH, cookies)
 
-    # Comando limpio y compatible con las versiones modernas de VSD sin parámetros obsoletos
     command = [
         "vsd",
         "save",

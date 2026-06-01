@@ -24,7 +24,16 @@ class AsyncFacilito:
 
     async def __aenter__(self):
         self._playwright = await async_playwright().start()
-        self._browser = await self._playwright.chromium.launch(headless=self.headless)
+#       Original call    
+#        self._browser = await self._playwright.chromium.launch(headless=self.headless)
+#       Modified call to force avoiding HEadless
+#        self._browser = await self._playwright.chromium.launch(headless=False)
+#       Modified call to use the real current Chrome, which should have the codecs to load the new videos in from the Claude-20 course that is now failing
+        self._browser = await self._playwright.chromium.launch(
+            headless=False,
+            channel="chrome"
+        )
+
         self._context = await self._browser.new_context(
             is_mobile=True,
             java_script_enabled=True,
