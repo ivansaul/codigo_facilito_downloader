@@ -269,6 +269,62 @@ def classify_vsd_error(
     return Detection.FATAL
 
 
+_YOUTUBE_THROTTLE_PATTERNS = (
+    r"\b429\b",
+    r"too many requests",
+    r"rate.?limit",
+)
+_YOUTUBE_AUTH_PATTERNS = (
+    r"sign in to confirm your age",
+    r"age-restricted",
+    r"login required",
+)
+_YOUTUBE_FATAL_PATTERNS = (
+    r"video unavailable",
+    r"private video",
+    r"this video is not available",
+    r"has been removed",
+    r"embedding disabled",
+    r"not available in your country",
+    r"no video formats found",
+    r"unable to extract",
+    r"invalid video id",
+)
+_YOUTUBE_TRANSIENT_PATTERNS = (
+    r"timed out",
+    r"timeout",
+    r"connection (reset|refused)",
+    r"temporary failure",
+    r"\b5\d\d\b",
+    r"http error 50",
+    r"unable to download",
+)
+
+
+def classify_youtube_error(message: str | None) -> Detection:
+    """
+    Classify a yt-dlp failure message for the retry loop.
+
+    :param str | None message: yt-dlp error text.
+    :return Detection: Classification of the failure.
+    """
+    text = (message or "").lower()
+
+    if _matches(_YOUTUBE_THROTTLE_PATTERNS, text):
+        return Detection.RETRYABLE_THROTTLE
+
+    if _matches(_YOUTUBE_AUTH_PATTERNS, text):
+        return Detection.AUTH_FAILURE
+
+    if _matches(_YOUTUBE_FATAL_PATTERNS, text):
+        return Detection.FATAL
+
+    if _matches(_YOUTUBE_TRANSIENT_PATTERNS, text):
+        return Detection.RETRYABLE_TRANSIENT
+
+    return Detection.FATAL
+
+
 def parse_retry_after(value: str | None, *, clock: Callable[[], float] = time.time):
     """Parse a Retry-After header value into seconds, or None if unusable."""
     if value is None:
