@@ -1,12 +1,14 @@
 import functools
 import os
 import platform
+import re
 import shutil
 import tarfile
 import zipfile
 from pathlib import Path
 
 from ..constants import APP_NAME
+from ..errors import AbortError
 from ..helpers import download_file, hashify, write_json
 from ..logger import logger
 from ..models import Quality
@@ -139,11 +141,24 @@ async def download_video(
     :param int threads: Number of threads to use (default: 10).
     """
 
+    import asyncio
     import subprocess
+
+    from ..ratelimit import (
+        RateLimitSettings,
+        RetryPolicy,
+        RetrySignal,
+        ThrottleStats,
+        classify_vsd_error,
+        parse_retry_after,
+        run_with_retry,
+    )
 
     cookies = kwargs.get("cookies", None)
     override = kwargs.get("override", False)
     threads = kwargs.get("threads", 10)
+    settings = kwargs.get("settings") or RateLimitSettings()
+    stats = kwargs.get("stats") or ThrottleStats()
 
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -180,14 +195,46 @@ async def download_video(
     if cookies:
         command += ["--cookies", TMP_COOKIES_PATH.as_posix()]
 
+    policy = RetryPolicy.from_settings(settings)
+
+    def run_vsd():
+        return subprocess.run(command, stderr=subprocess.PIPE, text=True)
+
+    async def save():
+        result = await asyncio.to_thread(run_vsd)
+
+        detection = classify_vsd_error(
+            result.returncode,
+            result.stderr,
+            block_detection_enabled=settings.block_detection_enabled,
+        )
+
+        if detection is None:
+            return
+
+        # A failed attempt can leave a partial file behind; remove it so it is
+        # never mistaken for a completed download on the next attempt.
+        if path.exists():
+            path.unlink(missing_ok=True)
+
+        retry_after = None
+
+        if result.stderr:
+            match = re.search(r"retry-after[:\s=]+(\S+)", result.stderr, re.IGNORECASE)
+
+            if match:
+                retry_after = parse_retry_after(match.group(1))
+
+        reason = " ".join((result.stderr or "").split())[:200]
+        reason = reason or f"vsd exited with {result.returncode}"
+
+        raise RetrySignal(detection, reason, retry_after=retry_after)
+
     try:
         # TODO: Implement custom progress bar
-        subprocess.run(command, check=True, stderr=subprocess.PIPE, text=True)
-    except subprocess.CalledProcessError as error:
-        logger.error(
-            f"Error downloading [{path.name}]: vsd exited with "
-            f"{error.returncode}: {(error.stderr or '').strip()}"
-        )
+        await run_with_retry(save, policy, stats, label=path.name)
+    except AbortError:
+        raise
     except Exception:
         logger.exception(f"Error downloading [{path.name}]")
 
