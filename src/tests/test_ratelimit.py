@@ -3,6 +3,7 @@ import logging
 import random
 from email.utils import formatdate
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -10,8 +11,10 @@ import typer
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
-from facilito import cli, config, constants, utils
+from facilito import async_api, cli, config, constants, downloaders, utils
+from facilito.async_api import AsyncFacilito
 from facilito.collectors import bootcamp, course, unit, video
+from facilito.downloaders import unit as unit_downloader
 from facilito.errors import (
     AbortError,
     BaseError,
@@ -19,6 +22,7 @@ from facilito.errors import (
     RateLimitError,
     RetryExhaustedError,
 )
+from facilito.models import TypeUnit, Unit
 from facilito.ratelimit import (
     Detection,
     Pacer,
@@ -1027,3 +1031,132 @@ def test_collectors_reraise_abort(monkeypatch, module, func_name, url):
 
     with pytest.raises(RetryExhaustedError):
         asyncio.run(func(CollectorFakeContext(), url))
+
+
+def test_async_download_threads_settings(monkeypatch):
+    client = AsyncFacilito()
+    client.authenticated = True
+    client._context = object()
+
+    captured = {}
+    settings = RateLimitSettings(request_delay=1.0)
+
+    async def fake_fetch_course(url, settings=None, stats=None):
+        captured["settings"] = settings
+        captured["stats"] = stats
+        return SimpleNamespace(chapters=[])
+
+    async def fake_download_course(context, course, **kwargs):
+        captured["kwargs"] = kwargs
+
+    monkeypatch.setattr(client, "fetch_course", fake_fetch_course)
+    monkeypatch.setattr(downloaders, "download_course", fake_download_course)
+
+    asyncio.run(client.download("https://x/cursos/a", settings=settings))
+
+    assert captured["settings"] is settings
+    assert isinstance(captured["stats"], ThrottleStats)
+    assert captured["kwargs"]["settings"] is settings
+    assert captured["kwargs"]["stats"] is captured["stats"]
+
+
+def test_async_download_logs_summary_when_events(monkeypatch):
+    client = AsyncFacilito()
+    client.authenticated = True
+    client._context = object()
+
+    mock_logger = MagicMock()
+    monkeypatch.setattr(async_api, "logger", mock_logger)
+
+    async def fake_fetch_course(url, settings=None, stats=None):
+        stats.retries += 1
+        return SimpleNamespace(chapters=[])
+
+    async def fake_download_course(context, course, **kwargs):
+        return None
+
+    monkeypatch.setattr(client, "fetch_course", fake_fetch_course)
+    monkeypatch.setattr(downloaders, "download_course", fake_download_course)
+
+    asyncio.run(client.download("https://x/cursos/a"))
+
+    assert mock_logger.info.called
+
+
+def test_async_download_no_summary_without_events(monkeypatch):
+    client = AsyncFacilito()
+    client.authenticated = True
+    client._context = object()
+
+    mock_logger = MagicMock()
+    monkeypatch.setattr(async_api, "logger", mock_logger)
+
+    async def fake_fetch_course(url, settings=None, stats=None):
+        return SimpleNamespace(chapters=[])
+
+    async def fake_download_course(context, course, **kwargs):
+        return None
+
+    monkeypatch.setattr(client, "fetch_course", fake_fetch_course)
+    monkeypatch.setattr(downloaders, "download_course", fake_download_course)
+
+    asyncio.run(client.download("https://x/cursos/a"))
+
+    assert not mock_logger.info.called
+
+
+def test_download_unit_forwards_settings_to_video(monkeypatch):
+    captured = {}
+    settings = RateLimitSettings()
+    stats = ThrottleStats()
+
+    async def fake_fetch_video(context, url, settings=None, stats=None):
+        captured["fetch_settings"] = settings
+        captured["fetch_stats"] = stats
+        return SimpleNamespace(url="https://x/hls/a.m3u8")
+
+    async def fake_download_video(url, path=None, **kwargs):
+        captured["video_kwargs"] = kwargs
+
+    class FakeContext:
+        async def cookies(self):
+            return []
+
+    monkeypatch.setattr(unit_downloader, "fetch_video", fake_fetch_video)
+    monkeypatch.setattr(unit_downloader, "download_video", fake_download_video)
+
+    unit = Unit(type=TypeUnit.VIDEO, name="a", slug="a", url="https://x/videos/a")
+
+    asyncio.run(
+        unit_downloader.download_unit(
+            FakeContext(), unit, Path("out/a.mp4"), settings=settings, stats=stats
+        )
+    )
+
+    assert captured["fetch_settings"] is settings
+    assert captured["fetch_stats"] is stats
+    assert captured["video_kwargs"]["settings"] is settings
+    assert captured["video_kwargs"]["stats"] is stats
+
+
+def test_download_unit_forwards_settings_to_save_page(monkeypatch):
+    captured = {}
+    settings = RateLimitSettings()
+    stats = ThrottleStats()
+
+    async def fake_save_page(context, url, path, settings=None, stats=None):
+        captured["settings"] = settings
+        captured["stats"] = stats
+
+    monkeypatch.setattr(unit_downloader, "save_page", fake_save_page)
+
+    unit = Unit(type=TypeUnit.LECTURE, name="a", slug="a", url="https://x/articulos/a")
+
+    asyncio.run(
+        unit_downloader.download_unit(
+            None, unit, Path("out/a.mhtml"), settings=settings, stats=stats
+        )
+    )
+
+    assert captured["settings"] is settings
+    assert captured["stats"] is stats

@@ -8,6 +8,7 @@ from .constants import BASE_URL, LOGIN_URL, SESSION_FILE
 from .errors import LoginError
 from .helpers import read_json
 from .logger import logger
+from .ratelimit import RateLimitSettings, ThrottleStats
 from .utils import (
     load_state,
     login_required,
@@ -89,51 +90,82 @@ class AsyncFacilito:
 
     @try_except_request
     @login_required
-    async def fetch_unit(self, url: str):
-        return await collectors.fetch_unit(self.context, url)
+    async def fetch_unit(
+        self,
+        url: str,
+        settings: RateLimitSettings | None = None,
+        stats: ThrottleStats | None = None,
+    ):
+        return await collectors.fetch_unit(self.context, url, settings, stats)
 
     @try_except_request
     @login_required
-    async def fetch_course(self, url: str):
-        return await collectors.fetch_course(self.context, url)
+    async def fetch_course(
+        self,
+        url: str,
+        settings: RateLimitSettings | None = None,
+        stats: ThrottleStats | None = None,
+    ):
+        return await collectors.fetch_course(self.context, url, settings, stats)
 
     @try_except_request
     @login_required
-    async def fetch_bootcamp(self, url: str):
-        return await collectors.fetch_bootcamp(self.context, url)
+    async def fetch_bootcamp(
+        self,
+        url: str,
+        settings: RateLimitSettings | None = None,
+        stats: ThrottleStats | None = None,
+    ):
+        return await collectors.fetch_bootcamp(self.context, url, settings, stats)
 
     @try_except_request
     @login_required
-    async def download(self, url: str, **kwargs):
+    async def download(
+        self,
+        url: str,
+        settings: RateLimitSettings | None = None,
+        **kwargs,
+    ):
         from pathlib import Path
 
         from .downloaders import download_bootcamp, download_course, download_unit
         from .models import TypeUnit
         from .utils import is_bootcamp, is_course, is_lecture, is_quiz, is_video
 
+        stats = ThrottleStats()
+
         if is_video(url) or is_lecture(url) or is_quiz(url):
-            unit = await self.fetch_unit(url)
+            unit = await self.fetch_unit(url, settings, stats)
             extension = ".mp4" if unit.type == TypeUnit.VIDEO else ".mhtml"
             await download_unit(
                 self.context,
                 unit,
                 Path(unit.slug + extension),
+                settings=settings,
+                stats=stats,
                 **kwargs,
             )
 
         elif is_course(url):
-            course = await self.fetch_course(url)
-            await download_course(self.context, course, **kwargs)
+            course = await self.fetch_course(url, settings, stats)
+            await download_course(
+                self.context, course, settings=settings, stats=stats, **kwargs
+            )
 
         elif is_bootcamp(url):
-            bootcamp = await self.fetch_bootcamp(url)
-            await download_bootcamp(self.context, bootcamp, **kwargs)
+            bootcamp = await self.fetch_bootcamp(url, settings, stats)
+            await download_bootcamp(
+                self.context, bootcamp, settings=settings, stats=stats, **kwargs
+            )
 
         else:
             raise Exception(
                 "Please provide a valid URL, either a video, lecture, "
                 "course, or bootcamp."
             )
+
+        if stats.has_events():
+            logger.info(stats.summary())
 
     @try_except_request
     async def set_cookies(self, path: Path):

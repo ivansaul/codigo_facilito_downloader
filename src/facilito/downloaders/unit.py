@@ -22,7 +22,10 @@ async def download_unit(context: BrowserContext, unit: Unit, path: Path, **kwarg
     """
 
     if unit.type == TypeUnit.VIDEO:
-        video = await fetch_video(context, unit.url)
+        settings = kwargs.get("settings")
+        stats = kwargs.get("stats")
+
+        video = await fetch_video(context, unit.url, settings, stats)
         await download_video(
             video.url,
             path=path,
@@ -31,4 +34,10 @@ async def download_unit(context: BrowserContext, unit: Unit, path: Path, **kwarg
         )  # type: ignore
 
     else:
-        await save_page(context, unit.url, path)
+        await save_page(
+            context,
+            unit.url,
+            path,
+            settings=kwargs.get("settings"),
+            stats=kwargs.get("stats"),
+        )
