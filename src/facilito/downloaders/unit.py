@@ -3,9 +3,10 @@ from pathlib import Path
 from playwright.async_api import BrowserContext
 
 from ..collectors import fetch_video
-from ..models import TypeUnit, Unit
+from ..models import TypeUnit, Unit, VideoProvider
 from ..utils import save_page
 from .video import download_video
+from .youtube import download_youtube
 
 
 async def download_unit(context: BrowserContext, unit: Unit, path: Path, **kwargs):
@@ -26,6 +27,11 @@ async def download_unit(context: BrowserContext, unit: Unit, path: Path, **kwarg
         stats = kwargs.get("stats")
 
         video = await fetch_video(context, unit.url, settings, stats)
+
+        if video.provider == VideoProvider.YOUTUBE:
+            await download_youtube(video.url, path=path, **kwargs)
+            return
+
         await download_video(
             video.url,
             path=path,

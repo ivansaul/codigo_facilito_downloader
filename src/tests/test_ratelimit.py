@@ -26,7 +26,15 @@ from facilito.errors import (
     RateLimitError,
     RetryExhaustedError,
 )
-from facilito.models import Bootcamp, Chapter, Course, Module, TypeUnit, Unit
+from facilito.models import (
+    Bootcamp,
+    Chapter,
+    Course,
+    Module,
+    TypeUnit,
+    Unit,
+    VideoProvider,
+)
 from facilito.ratelimit import (
     Detection,
     Pacer,
@@ -1118,7 +1126,7 @@ def test_download_unit_forwards_settings_to_video(monkeypatch):
     async def fake_fetch_video(context, url, settings=None, stats=None):
         captured["fetch_settings"] = settings
         captured["fetch_stats"] = stats
-        return SimpleNamespace(url="https://x/hls/a.m3u8")
+        return SimpleNamespace(url="https://x/hls/a.m3u8", provider=VideoProvider.HLS)
 
     async def fake_download_video(url, path=None, **kwargs):
         captured["video_kwargs"] = kwargs

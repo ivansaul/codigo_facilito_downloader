@@ -7,11 +7,12 @@ import pytest
 
 from facilito import constants
 from facilito.collectors import video as video_collector
+from facilito.downloaders import unit as unit_downloader
 from facilito.downloaders import youtube as youtube_downloader
 from facilito.downloaders.youtube import download_youtube, quality_to_format
 from facilito.errors import RetryExhaustedError
 from facilito.helpers import extract_youtube_id
-from facilito.models import Quality, Video, VideoProvider
+from facilito.models import Quality, TypeUnit, Unit, Video, VideoProvider
 from facilito.ratelimit import (
     Detection,
     RateLimitSettings,
@@ -344,3 +345,73 @@ def test_fetch_video_prefers_hls_over_youtube(monkeypatch):
 
     assert result.provider == VideoProvider.HLS
     assert result.url == f"{constants.VIDEO_BASE_URL}/hls/1/2/playlist.m3u8"
+
+
+class FakeCookiesContext:
+    async def cookies(self):
+        return []
+
+
+def test_download_unit_dispatches_youtube(monkeypatch, tmp_path):
+    captured = {}
+
+    async def fake_fetch_video(context, url, settings=None, stats=None):
+        return Video(
+            url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            provider=VideoProvider.YOUTUBE,
+        )
+
+    async def fake_download_youtube(url, path=None, **kwargs):
+        captured["url"] = url
+
+    async def fake_download_video(*args, **kwargs):
+        raise AssertionError("HLS downloader must not run for a YouTube video")
+
+    monkeypatch.setattr(unit_downloader, "fetch_video", fake_fetch_video)
+    monkeypatch.setattr(unit_downloader, "download_youtube", fake_download_youtube)
+    monkeypatch.setattr(unit_downloader, "download_video", fake_download_video)
+
+    unit = Unit(type=TypeUnit.VIDEO, name="a", slug="a", url="https://x/videos/a")
+
+    asyncio.run(
+        unit_downloader.download_unit(
+            FakeCookiesContext(),
+            unit,
+            tmp_path / "a.mp4",
+            settings=RateLimitSettings(),
+            stats=ThrottleStats(),
+        )
+    )
+
+    assert captured["url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+
+def test_download_unit_dispatches_hls(monkeypatch, tmp_path):
+    captured = {}
+
+    async def fake_fetch_video(context, url, settings=None, stats=None):
+        return Video(url="https://data.codigofacilito.com/hls/a.m3u8")
+
+    async def fake_download_video(url, path=None, **kwargs):
+        captured["url"] = url
+
+    async def fake_download_youtube(*args, **kwargs):
+        raise AssertionError("yt-dlp must not run for an HLS video")
+
+    monkeypatch.setattr(unit_downloader, "fetch_video", fake_fetch_video)
+    monkeypatch.setattr(unit_downloader, "download_video", fake_download_video)
+    monkeypatch.setattr(unit_downloader, "download_youtube", fake_download_youtube)
+
+    unit = Unit(type=TypeUnit.VIDEO, name="a", slug="a", url="https://x/videos/a")
+
+    asyncio.run(
+        unit_downloader.download_unit(
+            FakeCookiesContext(),
+            unit,
+            tmp_path / "a.mp4",
+            settings=RateLimitSettings(),
+            stats=ThrottleStats(),
+        )
+    )
+
+    assert captured["url"] == "https://data.codigofacilito.com/hls/a.m3u8"
