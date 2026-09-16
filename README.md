@@ -257,6 +257,54 @@ facilito download URL -q 720p -t 5
 > [!NOTE]
 > La versión actual es inestable y puede contener errores. Si necesitas una versión más estable, considera usar la versión anterior [**_[VER]_**][previous-version].
 
+### Rate limiting
+
+El downloader incluye protecciones para evitar ser bloqueado por el servidor (HTTP `429`, retos de Cloudflare, errores temporales de `vsd`). Por defecto el ritmo no cambia (`--request-delay 0`, `--download-delay 0`), pero los reintentos con backoff exponencial están activados.
+
+Opciones:
+
+- `--request-delay`: Retardo base en segundos entre peticiones de página (scraping/MHTML). `0` lo desactiva.
+- `--request-jitter`: Jitter aleatorio en segundos que se suma a `--request-delay`; la espera real es `delay + U(0, jitter)`.
+- `--download-delay`: Retardo en segundos entre descargas de video consecutivas. `0` lo desactiva.
+- `--retry / --no-retry`: Activa o desactiva los reintentos con backoff exponencial (por defecto: activado).
+- `--max-retries`: Número máximo de reintentos tras el primer intento (por defecto: `3`).
+- `--retry-base-delay`: Espera base del primer reintento; se duplica por intento (por defecto: `1.0`).
+- `--retry-max-delay`: Espera máxima de un backoff calculado (por defecto: `30.0`).
+- `--retry-after-max`: Máximo a respetar de un `Retry-After` del servidor; si pide más, se limita y se avisa (por defecto: `60.0`).
+- `--block-detection / --no-block-detection`: Detecta respuestas de rate limit/reto (HTTP `429`, Cloudflare `403`) y hace backoff (por defecto: activado).
+- `--config`: Ruta al archivo de configuración JSON (por defecto: `Facilito/config.json`).
+
+#### Archivo de configuración
+
+Las mismas opciones se pueden fijar en `Facilito/config.json` (relativo al directorio actual). La precedencia es `CLI > archivo > valor por defecto`. También puedes indicar otra ruta con `--config` o la variable de entorno `FACILITO_CONFIG`.
+
+```json
+{
+  "request_delay": 0.5,
+  "request_jitter": 0.5,
+  "download_delay": 2.0,
+  "retry_enabled": true,
+  "max_retries": 3,
+  "retry_base_delay": 1.0,
+  "retry_max_delay": 30.0,
+  "retry_after_max": 60.0,
+  "block_detection_enabled": true
+}
+```
+
+Ejemplos:
+
+```console
+# Descarga "educada" de un bootcamp grande
+facilito download URL --request-delay 0.5 --request-jitter 0.5 --download-delay 2
+
+# Desactivar los reintentos
+facilito download URL --no-retry
+```
+
+> [!IMPORTANT]
+> Si se agotan los reintentos, la ejecución se detiene con un error (no se salta la unidad). `--threads` sigue controlando el paralelismo interno de `vsd` y puede provocar throttling por IP aunque el bucle externo esté regulado.
+
 ## Cómo contribuir
 
 ¡Todas las contribuciones son bienvenidas!. Antes de enviar cambios, revisa la guía [CONTRIBUTING.md](./CONTRIBUTING.md) para conocer las pautas del proyecto.
