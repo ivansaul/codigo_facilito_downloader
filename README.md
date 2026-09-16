@@ -362,6 +362,25 @@ Valores: `auto` (por defecto), `chrome`, `msedge`, `chromium`. También puedes f
 FACILITO_BROWSER=chrome facilito download URL
 ```
 
+### YouTube
+
+Algunas lecciones, en lugar del reproductor HLS, incrustan un video de YouTube (`youtube.com/embed/...`, `youtube-nocookie.com/embed/...`, `youtu.be/...` o `watch?v=...`). El downloader los **detecta automáticamente** y los descarga con [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) al mismo `.mp4` del resto de videos, respetando `--quality`, `--override` y los reintentos/pacing.
+
+`yt-dlp` es una dependencia del proyecto; si instalaste con `poetry install` ya está disponible. Si no, instálalo con:
+
+```console
+pip install yt-dlp
+```
+
+Mapeo de calidad: `max` → la mejor disponible, `min` → la peor, y `1080p|720p|480p|360p` → la mejor que no supere esa altura (si no existe, la mejor disponible).
+
+```console
+facilito download https://codigofacilito.com/cursos/go-profesional -q 720p
+```
+
+> [!NOTE]
+> No se descargan playlists, subtítulos ni metadatos de YouTube. Videos privados, eliminados, con embed deshabilitado o bloqueados por región fallan con un mensaje claro en el log. La ruta HLS (vídeos normales con `vsd`) no cambia.
+
 ## Cómo contribuir
 
 ¡Todas las contribuciones son bienvenidas!. Antes de enviar cambios, revisa la guía [CONTRIBUTING.md](./CONTRIBUTING.md) para conocer las pautas del proyecto.
