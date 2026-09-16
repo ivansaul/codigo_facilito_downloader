@@ -1,10 +1,12 @@
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 import typer
 from pydantic import ValidationError
+from typer.testing import CliRunner
 
-from facilito import config, constants
+from facilito import cli, config, constants
 from facilito.errors import (
     AbortError,
     BaseError,
@@ -13,6 +15,8 @@ from facilito.errors import (
     RetryExhaustedError,
 )
 from facilito.ratelimit import RateLimitSettings
+
+runner = CliRunner()
 
 
 def test_abort_error_hierarchy():
@@ -174,3 +178,117 @@ def test_resolve_settings_rejects_invalid_cli_override(monkeypatch, tmp_path):
 
     with pytest.raises(typer.BadParameter):
         config.resolve_settings({"request_delay": -1})
+
+
+def test_cli_download_help_lists_rate_limit_options():
+    result = runner.invoke(cli.app, ["download", "--help"], env={"COLUMNS": "200"})
+
+    assert result.exit_code == 0
+
+    for option in [
+        "--request-delay",
+        "--request-jitter",
+        "--download-delay",
+        "--retry",
+        "--no-retry",
+        "--max-retries",
+        "--retry-base-delay",
+        "--retry-max-delay",
+        "--retry-after-max",
+        "--block-detection",
+        "--no-block-detection",
+        "--config",
+    ]:
+        assert option in result.output
+
+
+def test_cli_download_resolves_settings(monkeypatch, tmp_path):
+    captured = {}
+
+    async def fake_download(url, **kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(cli, "_download", fake_download)
+    monkeypatch.setattr(config.constants, "CONFIG_FILE", tmp_path / "missing.json")
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "download",
+            "https://codigofacilito.com/videos/x",
+            "--max-retries",
+            "0",
+            "--request-delay",
+            "1.5",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["settings"].max_retries == 0
+    assert captured["settings"].request_delay == 1.5
+
+
+def test_cli_download_no_retry_flag(monkeypatch, tmp_path):
+    captured = {}
+
+    async def fake_download(url, **kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(cli, "_download", fake_download)
+    monkeypatch.setattr(config.constants, "CONFIG_FILE", tmp_path / "missing.json")
+
+    result = runner.invoke(
+        cli.app,
+        ["download", "https://codigofacilito.com/videos/x", "--no-retry"],
+    )
+
+    assert result.exit_code == 0
+    assert captured["settings"].retry_enabled is False
+
+
+def test_cli_download_rejects_invalid_value(monkeypatch, tmp_path):
+    monkeypatch.setattr(config.constants, "CONFIG_FILE", tmp_path / "missing.json")
+
+    result = runner.invoke(
+        cli.app,
+        ["download", "https://codigofacilito.com/videos/x", "--request-delay=-1"],
+    )
+
+    assert result.exit_code == 2
+
+
+def test_cli_download_rejects_missing_explicit_config(tmp_path):
+    result = runner.invoke(
+        cli.app,
+        [
+            "download",
+            "https://codigofacilito.com/videos/x",
+            "--config",
+            str(tmp_path / "nope.json"),
+        ],
+    )
+
+    assert result.exit_code == 2
+
+
+def test_cli_download_aborts_with_exit_code_one(monkeypatch, tmp_path):
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def download(self, url, **kwargs):
+            raise RetryExhaustedError(label="01_intro.mp4", attempts=4, reason="429")
+
+    mock_logger = MagicMock()
+
+    monkeypatch.setattr(cli, "AsyncFacilito", lambda *args, **kwargs: FakeClient())
+    monkeypatch.setattr(cli, "logger", mock_logger)
+    monkeypatch.setattr(config.constants, "CONFIG_FILE", tmp_path / "missing.json")
+
+    result = runner.invoke(cli.app, ["download", "https://codigofacilito.com/videos/x"])
+
+    assert result.exit_code == 1
+    assert mock_logger.error.called

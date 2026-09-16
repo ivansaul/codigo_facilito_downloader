@@ -5,6 +5,9 @@ import typer
 from typing_extensions import Annotated
 
 from facilito import AsyncFacilito, Quality
+from facilito.config import resolve_settings
+from facilito.errors import AbortError
+from facilito.logger import logger
 
 app = typer.Typer(rich_markup_mode="rich")
 
@@ -91,6 +94,104 @@ def download(
             show_default=True,
         ),
     ] = 10,
+    request_delay: Annotated[
+        float | None,
+        typer.Option(
+            "--request-delay",
+            help=(
+                "Base delay in seconds between page requests "
+                "(scraping/MHTML). 0 disables pacing."
+            ),
+            show_default="0.0",
+        ),
+    ] = None,
+    request_jitter: Annotated[
+        float | None,
+        typer.Option(
+            "--request-jitter",
+            help=(
+                "Extra random jitter in seconds added to --request-delay; "
+                "actual wait is delay + U(0, jitter)."
+            ),
+            show_default="0.0",
+        ),
+    ] = None,
+    download_delay: Annotated[
+        float | None,
+        typer.Option(
+            "--download-delay",
+            help=(
+                "Delay in seconds between consecutive video downloads. "
+                "0 disables pacing."
+            ),
+            show_default="0.0",
+        ),
+    ] = None,
+    retry: Annotated[
+        bool | None,
+        typer.Option(
+            "--retry/--no-retry",
+            help=(
+                "Retry transient failures (429, 5xx, timeouts) "
+                "with exponential backoff."
+            ),
+            show_default="True",
+        ),
+    ] = None,
+    max_retries: Annotated[
+        int | None,
+        typer.Option(
+            "--max-retries",
+            help="Maximum retries after a failed attempt. 0 disables retries.",
+            show_default="3",
+        ),
+    ] = None,
+    retry_base_delay: Annotated[
+        float | None,
+        typer.Option(
+            "--retry-base-delay",
+            help="Base wait in seconds for the first retry; doubles per attempt.",
+            show_default="1.0",
+        ),
+    ] = None,
+    retry_max_delay: Annotated[
+        float | None,
+        typer.Option(
+            "--retry-max-delay",
+            help="Maximum wait in seconds for a single computed backoff.",
+            show_default="30.0",
+        ),
+    ] = None,
+    retry_after_max: Annotated[
+        float | None,
+        typer.Option(
+            "--retry-after-max",
+            help=(
+                "Maximum seconds to honor a server Retry-After value; "
+                "longer waits are capped with a warning."
+            ),
+            show_default="60.0",
+        ),
+    ] = None,
+    block_detection: Annotated[
+        bool | None,
+        typer.Option(
+            "--block-detection/--no-block-detection",
+            help=(
+                "Detect rate-limit/challenge responses "
+                "(HTTP 429, Cloudflare 403) and back off."
+            ),
+            show_default="True",
+        ),
+    ] = None,
+    config_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--config",
+            help="Path to the rate-limiting config file (JSON).",
+            show_default="Facilito/config.json",
+        ),
+    ] = None,
 ):
     """
     Download a bootcamp | course | video | lecture from the given URL.
@@ -110,12 +211,27 @@ def download(
 
         facilito download https://codigofacilito.com/articulos/...
     """
+    cli_overrides = {
+        "request_delay": request_delay,
+        "request_jitter": request_jitter,
+        "download_delay": download_delay,
+        "retry_enabled": retry,
+        "max_retries": max_retries,
+        "retry_base_delay": retry_base_delay,
+        "retry_max_delay": retry_max_delay,
+        "retry_after_max": retry_after_max,
+        "block_detection_enabled": block_detection,
+    }
+
+    settings = resolve_settings(cli_overrides, config_path)
+
     asyncio.run(
         _download(
             url,
             quality=quality,
             override=override,
             threads=threads,
+            settings=settings,
         )
     )
 
@@ -132,7 +248,15 @@ async def _logout():
 
 async def _download(url: str, **kwargs):
     async with AsyncFacilito() as client:
-        await client.download(url, **kwargs)
+        try:
+            await client.download(url, **kwargs)
+
+        except AbortError as error:
+            logger.error(
+                f"Aborting run: {error}. "
+                "Try increasing --download-delay or lowering --threads."
+            )
+            raise typer.Exit(code=1)
 
 
 async def _set_cookies(path: Path):
