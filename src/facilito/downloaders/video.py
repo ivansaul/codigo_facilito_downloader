@@ -22,11 +22,9 @@ async def _download_vsd():
     system = platform.system().lower()  # linux, darwin, windows
     arch = platform.machine().lower()  # x86_64, arm64
 
-    version = "0.3.2"
+    version = "0.4.1"
 
-    release_url = (
-        "https://github.com/clitic/vsd/releases/download/{version}/vsd-{version}-{bin}"
-    )
+    release_url = "https://github.com/clitic/vsd/releases/download/vsd-{version}/vsd-{version}-{bin}"
 
     binary_urls = {
         ("linux", "x86_64"): release_url.format(
@@ -69,32 +67,46 @@ async def _download_vsd():
         try:
             logger.info("Downloading video downloader binary")
             await download_file(binary_url, ZIP_PATH)
+
+            if ZIP_NAME.endswith(".zip"):
+                with zipfile.ZipFile(ZIP_PATH, "r") as zip_ref:
+                    zip_ref.extractall(TMP_DIR_PATH)
+
+            if ZIP_NAME.endswith(".tar.xz"):
+                with tarfile.open(ZIP_PATH, "r:xz") as tar:
+                    tar.extractall(TMP_DIR_PATH)
+
+            for current_dir, _subdirs, files in os.walk(TMP_DIR_PATH):
+                for file in files:
+                    if file in ["vsd", "vsd.exe"]:
+                        src = os.path.join(current_dir, file)
+                        shutil.move(src, BIN_DIR_PATH)
         except Exception:
-            logger.error("Error downloading binary video downloader")
-            return
+            logger.exception("Error downloading binary video downloader")
+            ZIP_PATH.unlink(missing_ok=True)
 
-        if ZIP_NAME.endswith(".zip"):
-            with zipfile.ZipFile(ZIP_PATH, "r") as zip_ref:
-                zip_ref.extractall(TMP_DIR_PATH)
-
-        if ZIP_NAME.endswith(".tar.xz"):
-            with tarfile.open(ZIP_PATH, "r:xz") as tar:
-                tar.extractall(TMP_DIR_PATH)
-
-        for dir, subdirs, files in os.walk(TMP_DIR_PATH):
-            for file in files:
-                if file in ["vsd", "vsd.exe"]:
-                    src = os.path.join(dir, file)
-                    shutil.move(src, BIN_DIR_PATH)
-
+    if VSD_BIN_PATH.exists():
         if not os.access(VSD_BIN_PATH, os.X_OK):
             os.chmod(VSD_BIN_PATH, 0o744)
 
-    if "PATH" not in os.environ:
-        os.environ["PATH"] = BIN_DIR_PATH.as_posix()
+        if "PATH" not in os.environ:
+            os.environ["PATH"] = BIN_DIR_PATH.as_posix()
 
-    elif BIN_DIR_PATH.as_posix() not in os.environ["PATH"]:
-        os.environ["PATH"] = BIN_DIR_PATH.as_posix() + os.pathsep + os.environ["PATH"]
+        elif BIN_DIR_PATH.as_posix() not in os.environ["PATH"]:
+            os.environ["PATH"] = (
+                BIN_DIR_PATH.as_posix() + os.pathsep + os.environ["PATH"]
+            )
+
+        return VSD_BIN_PATH
+
+    # Fall back to a system-installed vsd binary
+    system_vsd = shutil.which("vsd")
+
+    if system_vsd:
+        return Path(system_vsd)
+
+    logger.error("vsd binary is not available")
+    return None
 
 
 def ffmpeg_required(func):
@@ -141,31 +153,41 @@ async def download_video(
 
     TMP_COOKIES_PATH = TMP_DIR_PATH / f"{hashify(url)}.json"
 
-    write_json(TMP_COOKIES_PATH, cookies)
+    if cookies:
+        write_json(TMP_COOKIES_PATH, cookies)
+
+    # Download vsd binary if not exists
+    vsd_bin = await _download_vsd()
+
+    if not vsd_bin:
+        logger.error(f"Error downloading [{path.name}]: vsd binary is not available")
+        return
 
     command = [
-        "vsd",
+        vsd_bin.as_posix(),
         "save",
         url,
-        "--cookies" if cookies else "",
-        TMP_COOKIES_PATH.as_posix() if cookies else "",
         "--directory",
         TMP_DIR_PATH.as_posix(),
         "--output",
         path.as_posix(),
         "--quality",
         quality.value,
-        "--skip-prompts",
         "--threads",
         str(threads),
     ]
 
-    # Download vsd binary if not exists
-    await _download_vsd()
+    if cookies:
+        command += ["--cookies", TMP_COOKIES_PATH.as_posix()]
 
     try:
         # TODO: Implement custom progress bar
-        subprocess.run(command)
+        subprocess.run(command, check=True, stderr=subprocess.PIPE, text=True)
+    except subprocess.CalledProcessError as error:
+        logger.error(
+            f"Error downloading [{path.name}]: vsd exited with "
+            f"{error.returncode}: {(error.stderr or '').strip()}"
+        )
     except Exception:
         logger.exception(f"Error downloading [{path.name}]")
 

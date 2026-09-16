@@ -1,3 +1,4 @@
+import asyncio
 import re
 
 from playwright.async_api import BrowserContext
@@ -7,20 +8,46 @@ from ..errors import VideoError
 from ..models import Video
 from ..utils import is_video
 
+M3U8_PATTERN = r"\/hls\/.*?\.m3u8"
+PLAYLIST_TIMEOUT = 10 * 1000
+
 
 async def fetch_video(context: BrowserContext, url: str) -> Video:
     VIDEO_ID_SELECTOR = "input[name='video_id']"
     COURSE_ID_SELECTOR = "input[name='course_id']"
-    M3U8_PATTERN = r"\/hls\/.*?\.m3u8"
 
     if not is_video(url):
         raise VideoError()
 
     try:
         page = await context.new_page()
+
+        # The player requests the playlist (possibly a signed url) while loading,
+        # so listen before navigating to avoid missing an early request.
+        playlist_urls: list[str] = []
+        playlist_found = asyncio.Event()
+
+        def on_request(request):
+            if ".m3u8" in request.url:
+                playlist_urls.append(request.url)
+                playlist_found.set()
+
+        page.on("request", on_request)
+
         await page.goto(url)
 
-        if m3u8_urls := re.findall(M3U8_PATTERN, await page.content()):
+        if not playlist_urls:
+            try:
+                await asyncio.wait_for(
+                    playlist_found.wait(), timeout=PLAYLIST_TIMEOUT / 1000
+                )
+            except asyncio.TimeoutError:
+                pass
+
+        if playlist_urls:
+            url = playlist_urls[0]
+
+        elif m3u8_urls := re.findall(M3U8_PATTERN, await page.content()):
             url = VIDEO_BASE_URL + m3u8_urls[0]
 
         else:
