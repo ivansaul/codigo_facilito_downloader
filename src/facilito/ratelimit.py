@@ -1,5 +1,6 @@
 import asyncio
 import random
+import re
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -109,6 +110,162 @@ class RetryPolicy(BaseModel):
             max_delay=settings.retry_max_delay,
             retry_after_max=settings.retry_after_max,
         )
+
+
+CHALLENGE_BODY_MARKERS = (
+    "cf-chl",
+    "challenge-platform",
+    "__cf_chl",
+    "cf_chl_opt",
+    "just a moment",
+    "attention required",
+    "checking your browser",
+    "enable javascript and cookies",
+)
+
+AUTH_URL_MARKERS = ("/users/sign_in",)
+AUTH_BODY_MARKERS = ("new_user",)
+
+_VSD_THROTTLE_PATTERNS = (
+    r"\b429\b",
+    r"too many requests",
+    r"rate.?limit",
+    r"retry-after",
+)
+_VSD_CHALLENGE_PATTERNS = (r"forbidden", r"cloudflare", r"challenge")
+_VSD_AUTH_PATTERNS = (
+    r"\b401\b",
+    r"unauthorized",
+    r"sign.?in",
+    r"cookie.*(invalid|expired)",
+)
+_VSD_TRANSIENT_PATTERNS = (
+    r"connection reset",
+    r"connection refused",
+    r"timed out",
+    r"timeout",
+    r"temporarily unavailable",
+    r"\b5\d\d\b",
+    r"stream.*(error|closed)",
+    r"error sending request",
+    r"unexpected eof",
+    r"broken pipe",
+)
+
+
+def _matches(patterns: tuple[str, ...], text: str) -> bool:
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
+def _has_challenge_markers(headers: dict | None, body: str | None) -> bool:
+    normalized = {str(k).lower(): str(v).lower() for k, v in (headers or {}).items()}
+
+    if normalized.get("cf-mitigated", "").startswith("challenge"):
+        return True
+
+    if "cloudflare" in normalized.get("server", "") and "cf-ray" in normalized:
+        return True
+
+    text = (body or "").lower()
+    return any(marker in text for marker in CHALLENGE_BODY_MARKERS)
+
+
+def _looks_like_auth_failure(final_url: str | None, body: str | None) -> bool:
+    url = (final_url or "").lower()
+
+    if any(marker in url for marker in AUTH_URL_MARKERS):
+        return True
+
+    text = (body or "").lower()
+    return any(marker in text for marker in AUTH_BODY_MARKERS)
+
+
+def classify_playwright_response(
+    status: int | None,
+    headers: dict | None = None,
+    body: str | None = None,
+    final_url: str | None = None,
+    *,
+    block_detection_enabled: bool = True,
+) -> Detection | None:
+    """
+    Classify a Playwright navigation response.
+
+    :return Detection | None: None when the response is a success.
+    """
+    if status is None:
+        return Detection.RETRYABLE_TRANSIENT
+
+    if status < 400:
+        return None
+
+    if status == 429:
+        if block_detection_enabled:
+            return Detection.RETRYABLE_THROTTLE
+        return Detection.RETRYABLE_TRANSIENT
+
+    if status in (408, 500, 502, 503, 504):
+        return Detection.RETRYABLE_TRANSIENT
+
+    if status in (401, 403):
+        if block_detection_enabled and _has_challenge_markers(headers, body):
+            return Detection.RETRYABLE_THROTTLE
+
+        if _looks_like_auth_failure(final_url, body):
+            return Detection.AUTH_FAILURE
+
+        if status == 401:
+            return Detection.AUTH_FAILURE
+
+        if not block_detection_enabled:
+            return Detection.RETRYABLE_TRANSIENT
+
+        return Detection.FATAL
+
+    return Detection.FATAL
+
+
+def classify_vsd_error(
+    returncode: int,
+    stderr: str | None,
+    *,
+    block_detection_enabled: bool = True,
+) -> Detection | None:
+    """
+    Classify a vsd subprocess failure from its exit code and stderr.
+
+    :return Detection | None: None when the process succeeded.
+    """
+    if returncode == 0:
+        return None
+
+    text = (stderr or "").lower()
+
+    if block_detection_enabled:
+        if _matches(_VSD_THROTTLE_PATTERNS, text):
+            return Detection.RETRYABLE_THROTTLE
+
+        if "403" in text and _matches(_VSD_CHALLENGE_PATTERNS, text):
+            return Detection.RETRYABLE_THROTTLE
+
+        if _matches(_VSD_AUTH_PATTERNS, text):
+            return Detection.AUTH_FAILURE
+
+        if _matches(_VSD_TRANSIENT_PATTERNS, text):
+            return Detection.RETRYABLE_TRANSIENT
+
+        return Detection.FATAL
+
+    if _matches(_VSD_AUTH_PATTERNS, text):
+        return Detection.AUTH_FAILURE
+
+    if _matches(_VSD_TRANSIENT_PATTERNS, text):
+        return Detection.RETRYABLE_TRANSIENT
+
+    if "429" in text or "403" in text:
+        return Detection.RETRYABLE_TRANSIENT
+
+    return Detection.FATAL
 
 
 def parse_retry_after(value: str | None, *, clock: Callable[[], float] = time.time):

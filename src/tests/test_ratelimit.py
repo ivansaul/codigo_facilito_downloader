@@ -24,6 +24,8 @@ from facilito.ratelimit import (
     RetryPolicy,
     RetrySignal,
     ThrottleStats,
+    classify_playwright_response,
+    classify_vsd_error,
     parse_retry_after,
     run_with_retry,
     sleep_with_jitter,
@@ -577,3 +579,106 @@ def test_throttle_stats_summary():
     assert "retries=2" in summary
     assert "throttles=1" in summary
     assert "capped=1" in summary
+
+
+def test_classify_playwright_success_and_missing_status():
+    assert classify_playwright_response(200, {}, None, None) is None
+    assert classify_playwright_response(302, {}, None, None) is None
+    assert classify_playwright_response(None) is Detection.RETRYABLE_TRANSIENT
+
+
+def test_classify_playwright_throttle_and_transient():
+    assert classify_playwright_response(429) is Detection.RETRYABLE_THROTTLE
+
+    for status in (408, 500, 502, 503, 504):
+        assert classify_playwright_response(status) is Detection.RETRYABLE_TRANSIENT
+
+
+def test_classify_playwright_challenge_headers():
+    mitigated = {"cf-mitigated": "challenge"}
+    assert classify_playwright_response(403, mitigated) is Detection.RETRYABLE_THROTTLE
+
+    cloudflare = {"Server": "cloudflare", "cf-ray": "abc123"}
+    assert classify_playwright_response(403, cloudflare) is Detection.RETRYABLE_THROTTLE
+
+
+def test_classify_playwright_challenge_body():
+    body = "<title>Just a moment...</title>"
+    assert classify_playwright_response(403, {}, body) is Detection.RETRYABLE_THROTTLE
+
+
+def test_classify_playwright_auth_failure():
+    login_form = '<form id="new_user"></form>'
+    assert classify_playwright_response(403, {}, login_form) is Detection.AUTH_FAILURE
+
+    sign_in_url = "https://codigofacilito.com/users/sign_in"
+    assert (
+        classify_playwright_response(403, {}, "", sign_in_url) is Detection.AUTH_FAILURE
+    )
+
+    assert classify_playwright_response(401) is Detection.AUTH_FAILURE
+
+
+def test_classify_playwright_unknown_403_is_fatal():
+    assert classify_playwright_response(403, {}, "") is Detection.FATAL
+
+
+def test_classify_playwright_block_detection_disabled():
+    assert (
+        classify_playwright_response(429, block_detection_enabled=False)
+        is Detection.RETRYABLE_TRANSIENT
+    )
+
+    mitigated = {"cf-mitigated": "challenge"}
+    assert (
+        classify_playwright_response(403, mitigated, block_detection_enabled=False)
+        is Detection.RETRYABLE_TRANSIENT
+    )
+
+
+def test_classify_vsd_success_and_fatal():
+    assert classify_vsd_error(0, "") is None
+    assert classify_vsd_error(1, "no playlists were found in website source.\n") is (
+        Detection.FATAL
+    )
+
+
+def test_classify_vsd_throttle():
+    assert classify_vsd_error(1, "HTTP 429 Too Many Requests") is (
+        Detection.RETRYABLE_THROTTLE
+    )
+    assert classify_vsd_error(1, "403 Forbidden: Cloudflare challenge") is (
+        Detection.RETRYABLE_THROTTLE
+    )
+    assert classify_vsd_error(1, "retry-after: 10") is (Detection.RETRYABLE_THROTTLE)
+
+
+def test_classify_vsd_transient():
+    assert classify_vsd_error(1, "error sending request for url (x)") is (
+        Detection.RETRYABLE_TRANSIENT
+    )
+    assert classify_vsd_error(1, "connection reset by peer") is (
+        Detection.RETRYABLE_TRANSIENT
+    )
+    assert classify_vsd_error(1, "timed out") is Detection.RETRYABLE_TRANSIENT
+    assert classify_vsd_error(1, "stream closed unexpectedly") is (
+        Detection.RETRYABLE_TRANSIENT
+    )
+
+
+def test_classify_vsd_auth():
+    assert classify_vsd_error(1, "401 Unauthorized") is Detection.AUTH_FAILURE
+    assert classify_vsd_error(1, "please sign in") is Detection.AUTH_FAILURE
+
+
+def test_classify_vsd_forbidden_is_throttle():
+    assert classify_vsd_error(1, "403 Forbidden") is Detection.RETRYABLE_THROTTLE
+
+
+def test_classify_vsd_block_detection_disabled():
+    assert classify_vsd_error(1, "HTTP 429\n", block_detection_enabled=False) is (
+        Detection.RETRYABLE_TRANSIENT
+    )
+    assert classify_vsd_error(1, "403 forbidden\n", block_detection_enabled=False) is (
+        Detection.RETRYABLE_TRANSIENT
+    )
