@@ -5,6 +5,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from facilito import constants
+from facilito.collectors import video as video_collector
 from facilito.downloaders import youtube as youtube_downloader
 from facilito.downloaders.youtube import download_youtube, quality_to_format
 from facilito.errors import RetryExhaustedError
@@ -240,3 +242,105 @@ def test_download_youtube_missing_dependency(monkeypatch, tmp_path):
     )
 
     assert mock_logger.error.called
+
+
+class FakeResponse:
+    def __init__(self, status=200, url="https://x/videos/a"):
+        self.status = status
+        self.headers = {}
+        self.url = url
+
+
+class FakeAttrLocator:
+    def __init__(self, value):
+        self._value = value
+
+    @property
+    def first(self):
+        return self
+
+    async def get_attribute(self, name):
+        return self._value
+
+
+class FakePage:
+    def __init__(self, content="", iframes=None, attributes=None):
+        self._content = content
+        self._iframes = iframes or []
+        self._attributes = attributes or {}
+        self.url = "https://x/videos/a"
+
+    def on(self, *args, **kwargs):
+        return None
+
+    async def goto(self, url, **kwargs):
+        return FakeResponse(url=url)
+
+    async def content(self):
+        return self._content
+
+    async def evaluate(self, script):
+        return None
+
+    async def eval_on_selector_all(self, selector, script):
+        return self._iframes
+
+    def locator(self, selector):
+        return FakeAttrLocator(self._attributes.get(selector, ""))
+
+    async def close(self):
+        return None
+
+
+class FakeContext:
+    def __init__(self, page):
+        self._page = page
+
+    async def new_page(self):
+        return self._page
+
+
+def test_find_youtube_id_prefers_iframes():
+    iframes = ["https://www.youtube.com/embed/aaaaaaaaaaa"]
+    markup = "https://youtu.be/bbbbbbbbbbb"
+
+    assert video_collector._find_youtube_id(iframes, markup) == "aaaaaaaaaaa"
+
+
+def test_find_youtube_id_falls_back_to_markup():
+    markup = '<iframe src="https://www.youtube-nocookie.com/embed/zzzzzzzzzzz">'
+
+    assert video_collector._find_youtube_id([], markup) == "zzzzzzzzzzz"
+
+
+def test_find_youtube_id_none():
+    assert video_collector._find_youtube_id([], "<html></html>") is None
+
+
+def test_fetch_video_detects_youtube_embed(monkeypatch):
+    monkeypatch.setattr(video_collector, "PLAYLIST_TIMEOUT", 0)
+
+    page = FakePage(iframes=["https://www.youtube.com/embed/dQw4w9WgXcQ"])
+
+    result = asyncio.run(
+        video_collector.fetch_video(FakeContext(page), "https://x/videos/intro")
+    )
+
+    assert result.provider == VideoProvider.YOUTUBE
+    assert result.url == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+
+def test_fetch_video_prefers_hls_over_youtube(monkeypatch):
+    monkeypatch.setattr(video_collector, "PLAYLIST_TIMEOUT", 0)
+
+    page = FakePage(
+        content='<source src="/hls/1/2/playlist.m3u8">',
+        iframes=["https://www.youtube.com/embed/dQw4w9WgXcQ"],
+    )
+
+    result = asyncio.run(
+        video_collector.fetch_video(FakeContext(page), "https://x/videos/intro")
+    )
+
+    assert result.provider == VideoProvider.HLS
+    assert result.url == f"{constants.VIDEO_BASE_URL}/hls/1/2/playlist.m3u8"

@@ -5,8 +5,9 @@ from playwright.async_api import BrowserContext
 
 from ..constants import VIDEO_BASE_URL, VIDEO_M3U8_URL
 from ..errors import AbortError, VideoError
+from ..helpers import extract_youtube_id
 from ..logger import logger
-from ..models import Video
+from ..models import Video, VideoProvider
 from ..ratelimit import (
     RateLimitSettings,
     ThrottleStats,
@@ -91,6 +92,24 @@ def _find_playlist_in_html(html: str) -> str | None:
     return matches[0] if matches else None
 
 
+async def _iframe_sources(page) -> list[str]:
+    try:
+        return await page.eval_on_selector_all(
+            "iframe", "els => els.map(element => element.src)"
+        )
+    except Exception:
+        return []
+
+
+def _find_youtube_id(iframe_sources: list[str], html: str) -> str | None:
+    """Return the first YouTube id from iframes (priority) or the markup."""
+    for source in iframe_sources:
+        if video_id := extract_youtube_id(source):
+            return video_id
+
+    return extract_youtube_id(html)
+
+
 async def fetch_video(
     context: BrowserContext,
     url: str,
@@ -137,6 +156,7 @@ async def fetch_video(
 
         player_source = await _player_source(page)
         html = await page.content()
+        provider = VideoProvider.HLS
 
         if playlist_urls:
             url = playlist_urls[0]
@@ -153,6 +173,11 @@ async def fetch_video(
         elif m3u8_urls := re.findall(M3U8_PATTERN, html):
             url = VIDEO_BASE_URL + m3u8_urls[0]
             logger.info(f"Playlist URL found in page source: {redact_url(url)}")
+
+        elif youtube_id := _find_youtube_id(await _iframe_sources(page), html):
+            provider = VideoProvider.YOUTUBE
+            url = f"https://www.youtube.com/watch?v={youtube_id}"
+            logger.info(f"YouTube embed detected: {youtube_id}")
 
         else:
             course_id = await page.locator(COURSE_ID_SELECTOR).first.get_attribute(
@@ -186,4 +211,4 @@ async def fetch_video(
     finally:
         await page.close()
 
-    return Video(url=url)
+    return Video(url=url, provider=provider)
