@@ -16,6 +16,7 @@ from ..ratelimit import (
 from ..utils import is_video
 
 M3U8_PATTERN = r"\/hls\/.*?\.m3u8"
+PLAYLIST_URL_PATTERN = r"https?://[^\"'\s<>]+?\.m3u8"
 PLAYLIST_TIMEOUT = 10 * 1000
 
 
@@ -29,19 +30,21 @@ async def _wait_for_playlist(playlist_found: asyncio.Event, timeout: float) -> N
 async def _trigger_player(page) -> None:
     """Start playback so players that lazy-load the manifest request it."""
     try:
-        await page.evaluate(
+        status = await page.evaluate(
             """() => {
                 const video = document.querySelector('video');
-                if (!video) return;
+                if (!video) return 'no-video';
                 video.muted = true;
                 const result = video.play();
                 if (result && typeof result.catch === 'function') {
                     result.catch(() => {});
                 }
+                return 'played';
             }"""
         )
-    except Exception:
-        pass
+        logger.debug(f"Player trigger: {status}")
+    except Exception as error:
+        logger.debug(f"Player trigger failed: {error}")
 
     for selector in (
         "button.vjs-big-play-button",
@@ -74,6 +77,18 @@ async def _player_source(page) -> str | None:
         )
     except Exception:
         return None
+
+
+def _find_playlist_in_html(html: str) -> str | None:
+    """Find an absolute playlist URL in the page markup, unescaping JSON."""
+    text = html.replace("\\/", "/").replace("\\u0026", "&").replace("&amp;", "&")
+    matches = re.findall(PLAYLIST_URL_PATTERN, text)
+
+    for match in matches:
+        if "bcdn_token" in match or "codigofacilito.com" in match:
+            return match
+
+    return matches[0] if matches else None
 
 
 async def fetch_video(
@@ -121,6 +136,7 @@ async def fetch_video(
             await _wait_for_playlist(playlist_found, timeout)
 
         player_source = await _player_source(page)
+        html = await page.content()
 
         if playlist_urls:
             url = playlist_urls[0]
@@ -130,7 +146,11 @@ async def fetch_video(
             url = player_source
             logger.info(f"Playlist URL read from player: {redact_url(url)}")
 
-        elif m3u8_urls := re.findall(M3U8_PATTERN, await page.content()):
+        elif html_url := _find_playlist_in_html(html):
+            url = html_url
+            logger.info(f"Playlist URL found in page markup: {redact_url(url)}")
+
+        elif m3u8_urls := re.findall(M3U8_PATTERN, html):
             url = VIDEO_BASE_URL + m3u8_urls[0]
             logger.info(f"Playlist URL found in page source: {redact_url(url)}")
 
@@ -140,6 +160,13 @@ async def fetch_video(
             )
             video_id = await page.locator(VIDEO_ID_SELECTOR).first.get_attribute(
                 "value"
+            )
+
+            logger.warning(
+                "No playlist captured for "
+                f"{redact_url(url)} (final url {redact_url(page.url)}); "
+                f"markup has bcdn_token={'bcdn_token' in html}, "
+                f"m3u8={'.m3u8' in html}"
             )
 
             if not video_id or not course_id:

@@ -1754,3 +1754,46 @@ def test_fetch_video_uses_player_source(monkeypatch, caplog):
 
     assert result.url == "https://data.codigofacilito.com/hls/1/2/playlist.m3u8"
     assert any("read from player" in record.message for record in caplog.records)
+
+
+def test_find_playlist_in_html_unescapes_json():
+    html = (
+        '{"url":"https:\\/\\/data.codigofacilito.com\\/bcdn_token=abc&expires=1'
+        '&token_path=%2Fhls%2F1%2F2%2F\\/hls\\/1\\/2\\/playlist.m3u8"}'
+    )
+    expected = (
+        "https://data.codigofacilito.com/bcdn_token=abc&expires=1"
+        "&token_path=%2Fhls%2F1%2F2%2F/hls/1/2/playlist.m3u8"
+    )
+
+    assert video._find_playlist_in_html(html) == expected
+
+
+def test_find_playlist_in_html_returns_none_without_match():
+    assert video._find_playlist_in_html("<html></html>") is None
+
+
+def test_fetch_video_uses_page_markup(monkeypatch, caplog):
+    monkeypatch.setattr(video, "PLAYLIST_TIMEOUT", 0)
+
+    html = (
+        'var src = "https:\\/\\/data.codigofacilito.com\\/hls\\/1\\/2'
+        '\\/playlist.m3u8";'
+    )
+
+    class Page(FakeVideoPage):
+        async def content(self):
+            return html
+
+        async def evaluate(self, script):
+            return None
+
+    class FakeContext:
+        async def new_page(self):
+            return Page({})
+
+    with caplog.at_level(logging.INFO):
+        result = asyncio.run(video.fetch_video(FakeContext(), "https://x/videos/intro"))
+
+    assert result.url == "https://data.codigofacilito.com/hls/1/2/playlist.m3u8"
+    assert any("page markup" in record.message for record in caplog.records)
