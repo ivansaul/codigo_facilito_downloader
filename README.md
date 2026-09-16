@@ -281,9 +281,9 @@ Las mismas opciones se pueden fijar en `Facilito/config.json` (relativo al direc
 
 ```json
 {
-  "request_delay": 0.5,
-  "request_jitter": 0.5,
-  "download_delay": 2.0,
+  "request_delay": 0.3,
+  "request_jitter": 0.3,
+  "download_delay": 1.5,
   "retry_enabled": true,
   "max_retries": 3,
   "retry_base_delay": 1.0,
@@ -293,13 +293,41 @@ Las mismas opciones se pueden fijar en `Facilito/config.json` (relativo al direc
 }
 ```
 
-Ejemplos:
+#### Configuración recomendada
+
+Comando recomendado para un curso o bootcamp completo: espacia lo suficiente para no llamar la atención del servidor sin renunciar a buena velocidad. Los reintentos con backoff y la detección de bloqueos quedan activados por defecto.
 
 ```console
-# Descarga "educada" de un bootcamp grande
-facilito download URL --request-delay 0.5 --request-jitter 0.5 --download-delay 2
+facilito download URL \
+  --request-delay 0.3 \
+  --request-jitter 0.3 \
+  --download-delay 1.5
+```
 
-# Desactivar los reintentos
+Valores recomendados:
+
+| Opción | Valor | Motivo |
+|--------|-------|--------|
+| `--request-delay` | `0.3` | Separa las navegaciones de scraping sin penalizar mucho el tiempo total. |
+| `--request-jitter` | `0.3` | Evita un patrón fijo; además añade aleatoriedad al `--download-delay`. |
+| `--download-delay` | `1.5` | Separa descargas de video consecutivas. |
+| `--max-retries` | `3` (default) | Suficiente para `429`/`5xx` puntuales. |
+| `--retry-base-delay` / `--retry-max-delay` | `1` / `30` (default) | Backoff exponencial acotado. |
+| `--retry-after-max` | `60` (default) | Respeta al servidor sin bloquearte horas. |
+| `--threads` | `10` (default; usa `5`–`8` si te bloquean) | Controla el paralelismo interno de `vsd`. |
+
+Si empiezas a recibir `429`/`403`, sube el espaciado y baja los hilos:
+
+```console
+facilito download URL \
+  --request-delay 0.5 --request-jitter 0.5 \
+  --download-delay 3 \
+  --threads 6
+```
+
+Desactivar los reintentos:
+
+```console
 facilito download URL --no-retry
 ```
 
