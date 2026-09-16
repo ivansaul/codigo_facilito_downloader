@@ -1,6 +1,9 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
+from facilito import constants
 from facilito.errors import (
     AbortError,
     BaseError,
@@ -86,3 +89,9 @@ def test_settings_rejects_max_delay_lower_than_base_delay():
 def test_settings_rejects_unknown_key():
     with pytest.raises(ValidationError):
         RateLimitSettings(concurrency=4)
+
+
+def test_config_constants():
+    assert constants.APP_DIR == Path(constants.APP_NAME)
+    assert constants.CONFIG_FILE == Path("Facilito") / "config.json"
+    assert constants.CONFIG_ENV_VAR == "FACILITO_CONFIG"
