@@ -1682,3 +1682,75 @@ def test_download_video_sends_referer_header(monkeypatch, tmp_path):
         "Referer",
         f"{constants.BASE_URL}/",
     ]
+
+
+class FakeCountLocator:
+    def __init__(self, calls, selector):
+        self._calls = calls
+        self._selector = selector
+
+    @property
+    def first(self):
+        return self
+
+    async def count(self):
+        return 1
+
+    async def click(self, timeout=None):
+        self._calls.append(("click", self._selector))
+
+
+class FakeTriggerPage:
+    def __init__(self):
+        self.calls = []
+
+    async def evaluate(self, script):
+        self.calls.append("evaluate")
+
+    def locator(self, selector):
+        self.calls.append(("locator", selector))
+        return FakeCountLocator(self.calls, selector)
+
+
+def test_trigger_player_plays_and_clicks():
+    page = FakeTriggerPage()
+
+    asyncio.run(video._trigger_player(page))
+
+    assert "evaluate" in page.calls
+    assert any(item[0] == "click" for item in page.calls if isinstance(item, tuple))
+
+
+def test_player_source_returns_evaluate_result():
+    class FakePage:
+        async def evaluate(self, script):
+            return "https://data.codigofacilito.com/hls/1/2/playlist.m3u8"
+
+    async def run():
+        return await video._player_source(FakePage())
+
+    assert asyncio.run(run()) == (
+        "https://data.codigofacilito.com/hls/1/2/playlist.m3u8"
+    )
+
+
+def test_fetch_video_uses_player_source(monkeypatch, caplog):
+    monkeypatch.setattr(video, "PLAYLIST_TIMEOUT", 0)
+
+    class Page(FakeVideoPage):
+        async def evaluate(self, script):
+            if "currentSrc" in script:
+                return "https://data.codigofacilito.com/hls/1/2/playlist.m3u8"
+            return None
+
+    page = Page({})
+
+    class FakeContext:
+        async def new_page(self):
+            return page
+
+    with caplog.at_level(logging.INFO):
+        result = asyncio.run(video.fetch_video(FakeContext(), "https://x/videos/intro"))
+
+    assert result.url == "https://data.codigofacilito.com/hls/1/2/playlist.m3u8"
+    assert any("read from player" in record.message for record in caplog.records)

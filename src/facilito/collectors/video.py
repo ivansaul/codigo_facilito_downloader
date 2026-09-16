@@ -19,6 +19,63 @@ M3U8_PATTERN = r"\/hls\/.*?\.m3u8"
 PLAYLIST_TIMEOUT = 10 * 1000
 
 
+async def _wait_for_playlist(playlist_found: asyncio.Event, timeout: float) -> None:
+    try:
+        await asyncio.wait_for(playlist_found.wait(), timeout=timeout)
+    except asyncio.TimeoutError:
+        pass
+
+
+async def _trigger_player(page) -> None:
+    """Start playback so players that lazy-load the manifest request it."""
+    try:
+        await page.evaluate(
+            """() => {
+                const video = document.querySelector('video');
+                if (!video) return;
+                video.muted = true;
+                const result = video.play();
+                if (result && typeof result.catch === 'function') {
+                    result.catch(() => {});
+                }
+            }"""
+        )
+    except Exception:
+        pass
+
+    for selector in (
+        "button.vjs-big-play-button",
+        "button.play-icon",
+        "button[aria-label*='play' i]",
+        "button[title*='play' i]",
+    ):
+        try:
+            locator = page.locator(selector).first
+            if await locator.count():
+                await locator.click(timeout=1000)
+                return
+        except Exception:
+            continue
+
+
+async def _player_source(page) -> str | None:
+    try:
+        return await page.evaluate(
+            """() => {
+                const video = document.querySelector('video');
+                if (video && (video.currentSrc || video.src)) {
+                    return video.currentSrc || video.src;
+                }
+                const source = document.querySelector(
+                    'video source, source[type="application/vnd.apple.mpegurl"]'
+                );
+                return source ? source.src : null;
+            }"""
+        )
+    except Exception:
+        return None
+
+
 async def fetch_video(
     context: BrowserContext,
     url: str,
@@ -53,17 +110,25 @@ async def fetch_video(
             stats=stats or ThrottleStats(),
         )
 
+        timeout = PLAYLIST_TIMEOUT / 1000
+
         if not playlist_urls:
-            try:
-                await asyncio.wait_for(
-                    playlist_found.wait(), timeout=PLAYLIST_TIMEOUT / 1000
-                )
-            except asyncio.TimeoutError:
-                pass
+            await _wait_for_playlist(playlist_found, timeout)
+
+        if not playlist_urls:
+            # Some players only request the manifest once playback starts.
+            await _trigger_player(page)
+            await _wait_for_playlist(playlist_found, timeout)
+
+        player_source = await _player_source(page)
 
         if playlist_urls:
             url = playlist_urls[0]
             logger.info(f"Playlist URL captured from network: {redact_url(url)}")
+
+        elif player_source and ".m3u8" in player_source:
+            url = player_source
+            logger.info(f"Playlist URL read from player: {redact_url(url)}")
 
         elif m3u8_urls := re.findall(M3U8_PATTERN, await page.content()):
             url = VIDEO_BASE_URL + m3u8_urls[0]
