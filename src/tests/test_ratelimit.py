@@ -1648,3 +1648,37 @@ def test_fetch_video_logs_static_fallback(monkeypatch, caplog):
         "https://video-storage.codigofacilito.com/hls/519/14643/playlist.m3u8"
     )
     assert any("static playlist URL" in record.message for record in caplog.records)
+
+
+def test_download_video_sends_referer_header(monkeypatch, tmp_path):
+    path = tmp_path / "a.mp4"
+    captured = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        return SimpleNamespace(returncode=0, stderr="")
+
+    async def fake_download_vsd():
+        return tmp_path / "vsd"
+
+    monkeypatch.setattr(video_downloader, "TMP_DIR_PATH", tmp_path)
+    monkeypatch.setattr(video_downloader, "_download_vsd", fake_download_vsd)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    asyncio.run(
+        video_downloader.download_video.__wrapped__(
+            "https://data.codigofacilito.com/hls/1/2/playlist.m3u8",
+            path,
+            settings=RateLimitSettings(),
+            stats=ThrottleStats(),
+        )
+    )
+
+    command = captured["command"]
+    index = command.index("--header")
+
+    assert command[index : index + 3] == [
+        "--header",
+        "Referer",
+        f"{constants.BASE_URL}/",
+    ]

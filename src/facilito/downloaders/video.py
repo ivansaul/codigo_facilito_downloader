@@ -7,7 +7,7 @@ import tarfile
 import zipfile
 from pathlib import Path
 
-from ..constants import APP_NAME
+from ..constants import APP_NAME, BASE_URL
 from ..errors import AbortError
 from ..helpers import download_file, hashify, write_json
 from ..logger import logger
@@ -195,6 +195,10 @@ async def download_video(
 
     if cookies:
         command += ["--cookies", TMP_COOKIES_PATH.as_posix()]
+
+    # The CDN enforces referer-based hotlink protection: without this header the
+    # playlist requests return 403 and vsd reports "no playlists were found".
+    command += ["--header", "Referer", f"{BASE_URL}/"]
 
     policy = RetryPolicy.from_settings(settings)
 
