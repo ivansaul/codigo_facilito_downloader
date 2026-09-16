@@ -5,8 +5,14 @@ from playwright.async_api import BrowserContext
 
 from ..constants import VIDEO_BASE_URL, VIDEO_M3U8_URL
 from ..errors import AbortError, VideoError
+from ..logger import logger
 from ..models import Video
-from ..ratelimit import RateLimitSettings, ThrottleStats, throttled_goto
+from ..ratelimit import (
+    RateLimitSettings,
+    ThrottleStats,
+    redact_url,
+    throttled_goto,
+)
 from ..utils import is_video
 
 M3U8_PATTERN = r"\/hls\/.*?\.m3u8"
@@ -57,9 +63,11 @@ async def fetch_video(
 
         if playlist_urls:
             url = playlist_urls[0]
+            logger.info(f"Playlist URL captured from network: {redact_url(url)}")
 
         elif m3u8_urls := re.findall(M3U8_PATTERN, await page.content()):
             url = VIDEO_BASE_URL + m3u8_urls[0]
+            logger.info(f"Playlist URL found in page source: {redact_url(url)}")
 
         else:
             course_id = await page.locator(COURSE_ID_SELECTOR).first.get_attribute(
@@ -73,6 +81,10 @@ async def fetch_video(
                 raise VideoError()
 
             url = VIDEO_M3U8_URL.format(course_id=course_id, video_id=video_id)
+            logger.warning(
+                "Falling back to the static playlist URL, which may be "
+                f"unavailable: {redact_url(url)}"
+            )
 
     except AbortError:
         raise

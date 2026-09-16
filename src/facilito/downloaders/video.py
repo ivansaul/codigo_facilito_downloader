@@ -151,6 +151,7 @@ async def download_video(
         ThrottleStats,
         classify_vsd_error,
         parse_retry_after,
+        redact_url,
         run_with_retry,
     )
 
@@ -196,6 +197,8 @@ async def download_video(
         command += ["--cookies", TMP_COOKIES_PATH.as_posix()]
 
     policy = RetryPolicy.from_settings(settings)
+
+    logger.debug(f"Downloading [{path.name}] from {redact_url(url)}")
 
     def run_vsd():
         return subprocess.run(command, stderr=subprocess.PIPE, text=True)

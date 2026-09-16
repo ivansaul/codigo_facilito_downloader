@@ -1592,3 +1592,59 @@ def test_cli_download_rejects_invalid_browser(monkeypatch, tmp_path):
     )
 
     assert result.exit_code == 2
+
+
+class FakeAttrLocator:
+    def __init__(self, value):
+        self._value = value
+
+    @property
+    def first(self):
+        return self
+
+    async def get_attribute(self, name):
+        return self._value
+
+
+class FakeVideoPage:
+    def __init__(self, values):
+        self._values = values
+        self.url = "https://x/videos/intro"
+
+    def on(self, *args, **kwargs):
+        return None
+
+    async def goto(self, url, **kwargs):
+        return FakeResponse(200, url=url)
+
+    async def content(self):
+        return ""
+
+    def locator(self, selector):
+        return FakeAttrLocator(self._values.get(selector, ""))
+
+    async def close(self):
+        return None
+
+
+def test_fetch_video_logs_static_fallback(monkeypatch, caplog):
+    monkeypatch.setattr(video, "PLAYLIST_TIMEOUT", 0)
+
+    page = FakeVideoPage(
+        {
+            "input[name='course_id']": "519",
+            "input[name='video_id']": "14643",
+        }
+    )
+
+    class FakeContext:
+        async def new_page(self):
+            return page
+
+    with caplog.at_level(logging.WARNING):
+        result = asyncio.run(video.fetch_video(FakeContext(), "https://x/videos/intro"))
+
+    assert result.url == (
+        "https://video-storage.codigofacilito.com/hls/519/14643/playlist.m3u8"
+    )
+    assert any("static playlist URL" in record.message for record in caplog.records)
