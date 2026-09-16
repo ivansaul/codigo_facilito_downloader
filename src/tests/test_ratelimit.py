@@ -1,3 +1,7 @@
+import asyncio
+import logging
+import random
+from email.utils import formatdate
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -14,7 +18,16 @@ from facilito.errors import (
     RateLimitError,
     RetryExhaustedError,
 )
-from facilito.ratelimit import RateLimitSettings
+from facilito.ratelimit import (
+    Detection,
+    RateLimitSettings,
+    RetryPolicy,
+    RetrySignal,
+    ThrottleStats,
+    parse_retry_after,
+    run_with_retry,
+    sleep_with_jitter,
+)
 
 runner = CliRunner()
 
@@ -292,3 +305,275 @@ def test_cli_download_aborts_with_exit_code_one(monkeypatch, tmp_path):
 
     assert result.exit_code == 1
     assert mock_logger.error.called
+
+
+def _record_sleep(record, error=None):
+    async def _sleep(duration):
+        if error is not None:
+            raise error
+
+        record.append(duration)
+
+    return _sleep
+
+
+def test_parse_retry_after_delta_seconds():
+    assert parse_retry_after("120") == 120.0
+    assert parse_retry_after("1.5") == 1.5
+    assert parse_retry_after(" 30 ") == 30.0
+    assert parse_retry_after("-5") == 0.0
+
+
+def test_parse_retry_after_http_date():
+    now = 1_000_000_000.0
+
+    future = formatdate(now + 120, usegmt=True)
+    assert parse_retry_after(future, clock=lambda: now) == pytest.approx(120.0, abs=1.0)
+
+    past = formatdate(now - 120, usegmt=True)
+    assert parse_retry_after(past, clock=lambda: now) == 0.0
+
+
+def test_parse_retry_after_garbage():
+    assert parse_retry_after(None) is None
+    assert parse_retry_after("") is None
+    assert parse_retry_after("not-a-date") is None
+
+
+def test_sleep_with_jitter_range():
+    sleeps = []
+    asyncio.run(
+        sleep_with_jitter(1.0, 2.0, sleep=_record_sleep(sleeps), rng=random.Random(7))
+    )
+
+    assert 1.0 <= sleeps[0] <= 3.0
+
+
+def test_sleep_with_jitter_noop_when_zero():
+    sleeps = []
+    asyncio.run(sleep_with_jitter(0.0, 0.0, sleep=_record_sleep(sleeps)))
+
+    assert sleeps == []
+
+
+def test_run_with_retry_retries_then_succeeds():
+    calls = {"count": 0}
+    sleeps = []
+
+    async def op():
+        calls["count"] += 1
+        if calls["count"] < 3:
+            raise RetrySignal(Detection.RETRYABLE_TRANSIENT, "boom")
+        return "ok"
+
+    policy = RetryPolicy(max_retries=3, base_delay=1.0, max_delay=30.0, jitter=False)
+    stats = ThrottleStats()
+
+    result = asyncio.run(
+        run_with_retry(op, policy, stats, label="unit", sleep=_record_sleep(sleeps))
+    )
+
+    assert result == "ok"
+    assert sleeps == [1.0, 2.0]
+    assert stats.retries == 2
+    assert stats.waits == 2
+    assert stats.exhausted == 0
+
+
+def test_run_with_retry_respects_max_delay():
+    sleeps = []
+
+    async def op():
+        raise RetrySignal(Detection.RETRYABLE_TRANSIENT, "boom")
+
+    policy = RetryPolicy(max_retries=3, base_delay=1.0, max_delay=2.0, jitter=False)
+
+    with pytest.raises(RetryExhaustedError):
+        asyncio.run(
+            run_with_retry(
+                op, policy, ThrottleStats(), label="unit", sleep=_record_sleep(sleeps)
+            )
+        )
+
+    assert sleeps == [1.0, 2.0, 2.0]
+
+
+def test_run_with_retry_zero_retries_single_attempt():
+    sleeps = []
+
+    async def op():
+        raise RetrySignal(Detection.RETRYABLE_TRANSIENT, "boom")
+
+    policy = RetryPolicy(max_retries=0)
+
+    with pytest.raises(RetryExhaustedError) as excinfo:
+        asyncio.run(
+            run_with_retry(
+                op, policy, ThrottleStats(), label="unit", sleep=_record_sleep(sleeps)
+            )
+        )
+
+    assert excinfo.value.attempts == 1
+    assert sleeps == []
+
+
+def test_run_with_retry_disabled_single_attempt():
+    sleeps = []
+
+    async def op():
+        raise RetrySignal(Detection.RETRYABLE_THROTTLE, "429")
+
+    policy = RetryPolicy(enabled=False, max_retries=5)
+
+    with pytest.raises(RetryExhaustedError) as excinfo:
+        asyncio.run(
+            run_with_retry(
+                op, policy, ThrottleStats(), label="unit", sleep=_record_sleep(sleeps)
+            )
+        )
+
+    assert excinfo.value.attempts == 1
+    assert sleeps == []
+
+
+def test_run_with_retry_exhaustion_counters():
+    async def op():
+        raise RetrySignal(Detection.RETRYABLE_THROTTLE, "429")
+
+    policy = RetryPolicy(max_retries=2, base_delay=1.0, max_delay=30.0, jitter=False)
+    stats = ThrottleStats()
+
+    with pytest.raises(RetryExhaustedError) as excinfo:
+        asyncio.run(
+            run_with_retry(op, policy, stats, label="unit", sleep=_record_sleep([]))
+        )
+
+    assert excinfo.value.label == "unit"
+    assert excinfo.value.attempts == 3
+    assert stats.throttles == 3
+    assert stats.retries == 2
+    assert stats.exhausted == 1
+
+
+def test_run_with_retry_honors_retry_after():
+    calls = {"count": 0}
+    sleeps = []
+
+    async def op():
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise RetrySignal(Detection.RETRYABLE_THROTTLE, "429", retry_after=5.0)
+        return "ok"
+
+    policy = RetryPolicy(max_retries=3, retry_after_max=60.0)
+    stats = ThrottleStats()
+
+    asyncio.run(
+        run_with_retry(op, policy, stats, label="unit", sleep=_record_sleep(sleeps))
+    )
+
+    assert sleeps == [5.0]
+    assert stats.throttles == 1
+    assert stats.cap_hits == 0
+
+
+def test_run_with_retry_caps_retry_after(caplog):
+    calls = {"count": 0}
+    sleeps = []
+
+    async def op():
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise RetrySignal(Detection.RETRYABLE_THROTTLE, "429", retry_after=120.0)
+        return "ok"
+
+    policy = RetryPolicy(max_retries=3, retry_after_max=60.0)
+    stats = ThrottleStats()
+
+    with caplog.at_level(logging.WARNING):
+        asyncio.run(
+            run_with_retry(op, policy, stats, label="unit", sleep=_record_sleep(sleeps))
+        )
+
+    assert sleeps == [60.0]
+    assert stats.cap_hits == 1
+    assert any("Retry-After" in record.message for record in caplog.records)
+
+
+def test_run_with_retry_auth_failure_raises_login_error():
+    async def op():
+        raise RetrySignal(Detection.AUTH_FAILURE, "sign in required")
+
+    policy = RetryPolicy(max_retries=3)
+
+    with pytest.raises(LoginError):
+        asyncio.run(
+            run_with_retry(
+                op, policy, ThrottleStats(), label="u", sleep=_record_sleep([])
+            )
+        )
+
+
+def test_run_with_retry_fatal_is_not_retried():
+    async def op():
+        raise RetrySignal(Detection.FATAL, "parse error")
+
+    with pytest.raises(RetrySignal):
+        asyncio.run(
+            run_with_retry(
+                op,
+                RetryPolicy(max_retries=3),
+                ThrottleStats(),
+                label="u",
+                sleep=_record_sleep([]),
+            )
+        )
+
+
+def test_run_with_retry_backoff_jitter_within_range():
+    sleeps = []
+
+    async def op():
+        raise RetrySignal(Detection.RETRYABLE_TRANSIENT, "boom")
+
+    policy = RetryPolicy(max_retries=1, base_delay=4.0, max_delay=30.0, jitter=True)
+
+    with pytest.raises(RetryExhaustedError):
+        asyncio.run(
+            run_with_retry(
+                op,
+                policy,
+                ThrottleStats(),
+                label="u",
+                sleep=_record_sleep(sleeps),
+                rng=random.Random(1234),
+            )
+        )
+
+    assert 0.0 <= sleeps[0] <= 4.0
+
+
+def test_run_with_retry_propagates_cancellation():
+    async def op():
+        raise RetrySignal(Detection.RETRYABLE_TRANSIENT, "boom")
+
+    sleep = _record_sleep([], error=asyncio.CancelledError())
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(
+            run_with_retry(
+                op, RetryPolicy(max_retries=3), ThrottleStats(), label="u", sleep=sleep
+            )
+        )
+
+
+def test_throttle_stats_summary():
+    stats = ThrottleStats(retries=2, throttles=1, waits=2, cap_hits=1, exhausted=0)
+
+    assert ThrottleStats().has_events() is False
+    assert stats.has_events() is True
+
+    summary = stats.summary()
+    assert "retries=2" in summary
+    assert "throttles=1" in summary
+    assert "capped=1" in summary
