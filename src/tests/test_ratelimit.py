@@ -10,7 +10,7 @@ import typer
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
-from facilito import cli, config, constants
+from facilito import cli, config, constants, utils
 from facilito.errors import (
     AbortError,
     BaseError,
@@ -883,3 +883,112 @@ def test_throttled_goto_unknown_403_raises_signal():
                 sleep=_record_sleep([]),
             )
         )
+
+
+def test_try_except_request_propagates_abort_error():
+    @utils.try_except_request
+    async def failing():
+        raise RetryExhaustedError("unit", 3, "429")
+
+    with pytest.raises(RetryExhaustedError):
+        asyncio.run(failing())
+
+
+def test_try_except_request_swallows_plain_exception(monkeypatch):
+    monkeypatch.setattr(utils, "logger", MagicMock())
+
+    @utils.try_except_request
+    async def failing():
+        raise ValueError("boom")
+
+    assert asyncio.run(failing()) is None
+
+
+def test_collector_style_handler_reraises_abort_error():
+    async def collector_style():
+        try:
+            raise RetryExhaustedError("unit", 3, "429")
+        except AbortError:
+            raise
+        except Exception as error:
+            raise RuntimeError("converted") from error
+
+    with pytest.raises(RetryExhaustedError):
+        asyncio.run(collector_style())
+
+
+class FakeCDP:
+    async def send(self, method):
+        return {"data": "<html></html>"}
+
+
+class FakeContextPage:
+    def __init__(self):
+        self.context = self
+        self.closed = False
+
+    async def close(self):
+        self.closed = True
+
+    async def new_cdp_session(self, page):
+        return FakeCDP()
+
+
+class FakeContext:
+    def __init__(self, page):
+        self._page = page
+
+    async def new_page(self):
+        return self._page
+
+
+def test_save_page_uses_throttled_goto(monkeypatch, tmp_path):
+    calls = {}
+
+    async def fake_goto(page, url, settings, **kwargs):
+        calls["url"] = url
+        calls["settings"] = settings
+
+    async def fake_scroll(page, *args, **kwargs):
+        return None
+
+    monkeypatch.setattr(utils, "throttled_goto", fake_goto)
+    monkeypatch.setattr(utils, "progressive_scroll", fake_scroll)
+
+    page = FakeContextPage()
+    path = tmp_path / "source.mhtml"
+    settings = RateLimitSettings(request_delay=1.0)
+
+    asyncio.run(
+        utils.save_page(
+            FakeContext(page), "https://x/cursos/a", path, settings=settings
+        )
+    )
+
+    assert calls["url"] == "https://x/cursos/a"
+    assert calls["settings"] is settings
+    assert path.read_text(encoding="utf-8") == "<html></html>"
+    assert page.closed is True
+
+
+def test_save_page_defaults_settings_when_none(monkeypatch, tmp_path):
+    calls = {}
+
+    async def fake_goto(page, url, settings, **kwargs):
+        calls["settings"] = settings
+
+    async def fake_scroll(page, *args, **kwargs):
+        return None
+
+    monkeypatch.setattr(utils, "throttled_goto", fake_goto)
+    monkeypatch.setattr(utils, "progressive_scroll", fake_scroll)
+
+    asyncio.run(
+        utils.save_page(
+            FakeContext(FakeContextPage()),
+            "https://x/cursos/a",
+            tmp_path / "s.mhtml",
+        )
+    )
+
+    assert isinstance(calls["settings"], RateLimitSettings)

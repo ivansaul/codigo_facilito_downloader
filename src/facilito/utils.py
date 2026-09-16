@@ -4,10 +4,11 @@ from pathlib import Path
 
 from playwright.async_api import BrowserContext, Page
 
-from .errors import UnitError
+from .errors import AbortError, UnitError
 from .helpers import read_json, write_json
 from .logger import logger
 from .models import TypeUnit
+from .ratelimit import RateLimitSettings, ThrottleStats, throttled_goto
 
 
 def login_required(func):
@@ -32,6 +33,8 @@ def try_except_request(func):
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
+        except AbortError:
+            raise
         except Exception as e:
             if str(e):
                 logger.exception(e)
@@ -71,14 +74,23 @@ async def progressive_scroll(
 
 @try_except_request
 async def save_page(
-    context: BrowserContext, src: str | Page, path: str | Path = "source.mhtml"
+    context: BrowserContext,
+    src: str | Page,
+    path: str | Path = "source.mhtml",
+    settings: RateLimitSettings | None = None,
+    stats: ThrottleStats | None = None,
 ):
     EXCEPTION = Exception(f"Error saving page as mhtml {path}")
 
     try:
         if isinstance(src, str):
             page = await context.new_page()
-            await page.goto(src)
+            await throttled_goto(
+                page,
+                src,
+                settings or RateLimitSettings(),
+                stats=stats or ThrottleStats(),
+            )
         else:
             page = src
 
@@ -90,6 +102,8 @@ async def save_page(
         with open(path, "w", encoding="utf-8", newline="\n") as file:
             file.write(response["data"])
 
+    except AbortError:
+        raise
     except Exception:
         raise EXCEPTION
 
