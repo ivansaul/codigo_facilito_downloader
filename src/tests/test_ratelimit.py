@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from typer.testing import CliRunner
 
 from facilito import cli, config, constants, utils
+from facilito.collectors import bootcamp, course, unit, video
 from facilito.errors import (
     AbortError,
     BaseError,
@@ -992,3 +993,37 @@ def test_save_page_defaults_settings_when_none(monkeypatch, tmp_path):
     )
 
     assert isinstance(calls["settings"], RateLimitSettings)
+
+
+class CollectorFakePage:
+    def on(self, *args, **kwargs):
+        return None
+
+    async def close(self):
+        return None
+
+
+class CollectorFakeContext:
+    async def new_page(self):
+        return CollectorFakePage()
+
+
+@pytest.mark.parametrize(
+    "module,func_name,url",
+    [
+        (course, "fetch_course", "https://x/cursos/a"),
+        (video, "fetch_video", "https://x/videos/a"),
+        (unit, "fetch_unit", "https://x/videos/a"),
+        (bootcamp, "fetch_bootcamp", "https://x/programas/a"),
+    ],
+)
+def test_collectors_reraise_abort(monkeypatch, module, func_name, url):
+    async def fake_goto(*args, **kwargs):
+        raise RetryExhaustedError("unit", 3, "429")
+
+    monkeypatch.setattr(module, "throttled_goto", fake_goto)
+
+    func = getattr(module, func_name)
+
+    with pytest.raises(RetryExhaustedError):
+        asyncio.run(func(CollectorFakeContext(), url))

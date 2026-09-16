@@ -3,9 +3,10 @@ import asyncio
 from playwright.async_api import BrowserContext, Page
 
 from ..constants import BASE_URL
-from ..errors import CourseError, UnitError
+from ..errors import AbortError, CourseError, UnitError
 from ..helpers import slugify
 from ..models import Chapter, Course, Unit
+from ..ratelimit import RateLimitSettings, ThrottleStats, throttled_goto
 from ..utils import get_unit_type
 
 
@@ -76,6 +77,8 @@ async def _fetch_course_chapters(page: Page) -> list[Chapter]:
                 )
             )
 
+    except AbortError:
+        raise
     except Exception:
         raise UnitError()
 
@@ -85,12 +88,22 @@ async def _fetch_course_chapters(page: Page) -> list[Chapter]:
     return chapters
 
 
-async def fetch_course(context: BrowserContext, url: str) -> Course:
+async def fetch_course(
+    context: BrowserContext,
+    url: str,
+    settings: RateLimitSettings | None = None,
+    stats: ThrottleStats | None = None,
+) -> Course:
     NAME_SELECTOR = ".f-course-presentation h1, .cover-with-image h1"
 
     try:
         page = await context.new_page()
-        await page.goto(url)
+        await throttled_goto(
+            page,
+            url,
+            settings or RateLimitSettings(),
+            stats=stats or ThrottleStats(),
+        )
 
         name = await page.locator(NAME_SELECTOR).first.text_content()
 
@@ -99,6 +112,8 @@ async def fetch_course(context: BrowserContext, url: str) -> Course:
 
         chapters = await _fetch_course_chapters(page)
 
+    except AbortError:
+        raise
     except Exception:
         raise CourseError()
 

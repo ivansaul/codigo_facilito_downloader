@@ -3,13 +3,18 @@ import asyncio
 from playwright.async_api import BrowserContext, Page
 
 from ..constants import BASE_URL
-from ..errors import CourseError, UnitError
+from ..errors import AbortError, CourseError, UnitError
 from ..helpers import slugify
 from ..models import Bootcamp, Module, Unit
+from ..ratelimit import RateLimitSettings, ThrottleStats, throttled_goto
 from ..utils import get_unit_type
 
 
-async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
+async def _fetch_bootcamp_modules(
+    page: Page,
+    settings: RateLimitSettings | None = None,
+    stats: ThrottleStats | None = None,
+) -> list[Module]:
     """
     Fetch all modules from a bootcamp page.
 
@@ -107,15 +112,21 @@ async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
                 # The URLs like /cursos/bootcamp-...?play=true redirect
                 # to /videos/...
                 # We'll detect the type after getting the final URL
+                temp_page = None
                 try:
                     # Open page and wait for navigation to complete
                     # We only need domcontentloaded, not networkidle,
                     # to get video metadata
                     temp_page = await page.context.new_page()
-                    await temp_page.goto(full_url, wait_until="domcontentloaded")
+                    await throttled_goto(
+                        temp_page,
+                        full_url,
+                        settings or RateLimitSettings(),
+                        stats=stats or ThrottleStats(),
+                        wait_until="domcontentloaded",
+                    )
                     # Get final URL after redirects
                     final_url = temp_page.url
-                    await temp_page.close()
 
                     # Now determine the type based on final URL
                     unit_type = get_unit_type(final_url)
@@ -128,13 +139,14 @@ async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
                             url=final_url,
                         )
                     )
+                except AbortError:
+                    raise
                 except Exception:
                     # If redirect fails, skip this unit
-                    try:
-                        await temp_page.close()
-                    except Exception:
-                        pass
                     continue
+                finally:
+                    if temp_page is not None:
+                        await temp_page.close()
 
             if units:  # Only add module if it has valid units
                 modules.append(
@@ -145,13 +157,20 @@ async def _fetch_bootcamp_modules(page: Page) -> list[Module]:
                     )
                 )
 
+    except AbortError:
+        raise
     except Exception as e:
         raise UnitError(f"Error fetching bootcamp modules: {str(e)}")
 
     return modules
 
 
-async def fetch_bootcamp(context: BrowserContext, url: str) -> Bootcamp:
+async def fetch_bootcamp(
+    context: BrowserContext,
+    url: str,
+    settings: RateLimitSettings | None = None,
+    stats: ThrottleStats | None = None,
+) -> Bootcamp:
     """
     Fetch all information from a bootcamp.
 
@@ -170,7 +189,12 @@ async def fetch_bootcamp(context: BrowserContext, url: str) -> Bootcamp:
 
     try:
         page = await context.new_page()
-        await page.goto(url)
+        await throttled_goto(
+            page,
+            url,
+            settings or RateLimitSettings(),
+            stats=stats or ThrottleStats(),
+        )
 
         # Wait for page to load
         await asyncio.sleep(1)
@@ -185,11 +209,13 @@ async def fetch_bootcamp(context: BrowserContext, url: str) -> Bootcamp:
         name = " ".join(name.strip().split())
 
         # Fetch all modules
-        modules = await _fetch_bootcamp_modules(page)
+        modules = await _fetch_bootcamp_modules(page, settings, stats)
 
         if not modules:
             raise CourseError("No modules found in bootcamp")
 
+    except AbortError:
+        raise
     except Exception as e:
         raise CourseError(f"Error fetching bootcamp: {str(e)}")
 

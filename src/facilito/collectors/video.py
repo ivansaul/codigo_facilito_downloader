@@ -4,15 +4,21 @@ import re
 from playwright.async_api import BrowserContext
 
 from ..constants import VIDEO_BASE_URL, VIDEO_M3U8_URL
-from ..errors import VideoError
+from ..errors import AbortError, VideoError
 from ..models import Video
+from ..ratelimit import RateLimitSettings, ThrottleStats, throttled_goto
 from ..utils import is_video
 
 M3U8_PATTERN = r"\/hls\/.*?\.m3u8"
 PLAYLIST_TIMEOUT = 10 * 1000
 
 
-async def fetch_video(context: BrowserContext, url: str) -> Video:
+async def fetch_video(
+    context: BrowserContext,
+    url: str,
+    settings: RateLimitSettings | None = None,
+    stats: ThrottleStats | None = None,
+) -> Video:
     VIDEO_ID_SELECTOR = "input[name='video_id']"
     COURSE_ID_SELECTOR = "input[name='course_id']"
 
@@ -34,7 +40,12 @@ async def fetch_video(context: BrowserContext, url: str) -> Video:
 
         page.on("request", on_request)
 
-        await page.goto(url)
+        await throttled_goto(
+            page,
+            url,
+            settings or RateLimitSettings(),
+            stats=stats or ThrottleStats(),
+        )
 
         if not playlist_urls:
             try:
@@ -63,6 +74,8 @@ async def fetch_video(context: BrowserContext, url: str) -> Video:
 
             url = VIDEO_M3U8_URL.format(course_id=course_id, video_id=video_id)
 
+    except AbortError:
+        raise
     except Exception:
         raise VideoError()
 
