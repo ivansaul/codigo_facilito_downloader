@@ -293,6 +293,19 @@ Las mismas opciones se pueden fijar en `Facilito/config.json` (relativo al direc
 }
 ```
 
+Puedes partir del archivo de ejemplo [`config.example.json`](./config.example.json), que ya trae la configuración recomendada:
+
+```console
+mkdir -p Facilito
+cp config.example.json Facilito/config.json
+```
+
+O indicar su ruta directamente:
+
+```console
+facilito download URL --config config.example.json
+```
+
 #### Configuración recomendada
 
 Comando recomendado para un curso o bootcamp completo: espacia lo suficiente para no llamar la atención del servidor sin renunciar a buena velocidad. Los reintentos con backoff y la detección de bloqueos quedan activados por defecto.

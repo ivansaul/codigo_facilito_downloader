@@ -1,6 +1,7 @@
 # Custom
 *.txt
 *.json
+!config.example.json
 *.mp4*
 *.mkv
 *.zip
