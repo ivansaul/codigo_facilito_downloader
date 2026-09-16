@@ -15,6 +15,8 @@ from typer.testing import CliRunner
 from facilito import async_api, cli, config, constants, downloaders, utils
 from facilito.async_api import AsyncFacilito
 from facilito.collectors import bootcamp, course, unit, video
+from facilito.downloaders import bootcamp as bootcamp_downloader
+from facilito.downloaders import course as course_downloader
 from facilito.downloaders import unit as unit_downloader
 from facilito.downloaders import video as video_downloader
 from facilito.errors import (
@@ -24,7 +26,7 @@ from facilito.errors import (
     RateLimitError,
     RetryExhaustedError,
 )
-from facilito.models import TypeUnit, Unit
+from facilito.models import Bootcamp, Chapter, Course, Module, TypeUnit, Unit
 from facilito.ratelimit import (
     Detection,
     Pacer,
@@ -1296,3 +1298,134 @@ def test_download_video_skips_existing_file(monkeypatch, tmp_path):
             stats=ThrottleStats(),
         )
     )
+
+
+class _CountingPacer:
+    def __init__(self, settings, **kwargs):
+        self.settings = settings
+        _CountingPacer.waits = getattr(_CountingPacer, "waits", 0)
+
+    async def wait(self):
+        _CountingPacer.waits += 1
+
+    @classmethod
+    def reset(cls):
+        cls.waits = 0
+
+
+def test_download_course_paces_only_real_downloads(monkeypatch, tmp_path):
+    monkeypatch.setattr(course_downloader, "DIR_PATH", tmp_path)
+    monkeypatch.setattr(course_downloader, "Pacer", _CountingPacer)
+    _CountingPacer.reset()
+
+    calls = []
+
+    async def fake_download_unit(context, unit, path, **kwargs):
+        calls.append(path.name)
+
+    async def fake_save_page(context, url, path, settings=None, stats=None):
+        return None
+
+    monkeypatch.setattr(course_downloader, "download_unit", fake_download_unit)
+    monkeypatch.setattr(course_downloader, "save_page", fake_save_page)
+
+    course = Course(
+        name="c",
+        slug="c",
+        url="https://x/cursos/c",
+        chapters=[
+            Chapter(
+                name="ch1",
+                slug="ch1",
+                units=[
+                    Unit(
+                        type=TypeUnit.VIDEO,
+                        name="v1",
+                        slug="v1",
+                        url="https://x/videos/v1",
+                    ),
+                    Unit(
+                        type=TypeUnit.VIDEO,
+                        name="v2",
+                        slug="v2",
+                        url="https://x/videos/v2",
+                    ),
+                    Unit(
+                        type=TypeUnit.LECTURE,
+                        name="l1",
+                        slug="l1",
+                        url="https://x/articulos/l1",
+                    ),
+                ],
+            )
+        ],
+    )
+
+    chapter_dir = tmp_path / "c" / "01_ch1"
+    chapter_dir.mkdir(parents=True)
+    (chapter_dir / "02_v2.mp4").write_text("done")
+
+    asyncio.run(
+        course_downloader.download_course(
+            None, course, settings=RateLimitSettings(download_delay=0.05)
+        )
+    )
+
+    assert calls == ["01_v1.mp4", "02_v2.mp4", "03_l1.mhtml"]
+    assert _CountingPacer.waits == 2
+
+
+def test_download_bootcamp_paces_only_real_downloads(monkeypatch, tmp_path):
+    monkeypatch.setattr(bootcamp_downloader, "DIR_PATH", tmp_path)
+    monkeypatch.setattr(bootcamp_downloader, "Pacer", _CountingPacer)
+    _CountingPacer.reset()
+
+    calls = []
+
+    async def fake_download_unit(context, unit, path, **kwargs):
+        calls.append(path.name)
+
+    async def fake_save_page(context, url, path, settings=None, stats=None):
+        return None
+
+    monkeypatch.setattr(bootcamp_downloader, "download_unit", fake_download_unit)
+    monkeypatch.setattr(bootcamp_downloader, "save_page", fake_save_page)
+
+    bootcamp = Bootcamp(
+        name="b",
+        slug="b",
+        url="https://x/programas/b",
+        modules=[
+            Module(
+                name="m1",
+                slug="m1",
+                units=[
+                    Unit(
+                        type=TypeUnit.VIDEO,
+                        name="v1",
+                        slug="v1",
+                        url="https://x/videos/v1",
+                    ),
+                    Unit(
+                        type=TypeUnit.VIDEO,
+                        name="v2",
+                        slug="v2",
+                        url="https://x/videos/v2",
+                    ),
+                ],
+            )
+        ],
+    )
+
+    module_dir = tmp_path / "b" / "01_m1"
+    module_dir.mkdir(parents=True)
+    (module_dir / "02_v2.mp4").write_text("done")
+
+    asyncio.run(
+        bootcamp_downloader.download_bootcamp(
+            None, bootcamp, settings=RateLimitSettings(download_delay=0.05)
+        )
+    )
+
+    assert calls == ["01_v1.mp4", "02_v2.mp4"]
+    assert _CountingPacer.waits == 1
