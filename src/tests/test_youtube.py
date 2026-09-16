@@ -1,6 +1,21 @@
+import asyncio
+import sys
+import types
+from unittest.mock import MagicMock
+
+import pytest
+
+from facilito.downloaders import youtube as youtube_downloader
+from facilito.downloaders.youtube import download_youtube, quality_to_format
+from facilito.errors import RetryExhaustedError
 from facilito.helpers import extract_youtube_id
-from facilito.models import Video, VideoProvider
-from facilito.ratelimit import Detection, classify_youtube_error
+from facilito.models import Quality, Video, VideoProvider
+from facilito.ratelimit import (
+    Detection,
+    RateLimitSettings,
+    ThrottleStats,
+    classify_youtube_error,
+)
 
 
 def test_video_provider_defaults_to_hls():
@@ -60,3 +75,168 @@ def test_classify_youtube_error_table():
 
     assert classify_youtube_error("something unexpected") is Detection.FATAL
     assert classify_youtube_error(None) is Detection.FATAL
+
+
+def test_quality_to_format_table():
+    assert quality_to_format(Quality.MAX) == "bestvideo*+bestaudio/best"
+    assert quality_to_format(Quality.MIN) == "worstvideo*+worstaudio/worst"
+
+    for quality, height in (
+        (Quality.P1080, 1080),
+        (Quality.P720, 720),
+        (Quality.P480, 480),
+        (Quality.P360, 360),
+    ):
+        assert f"height<={height}" in quality_to_format(quality)
+
+
+def _install_fake_yt_dlp(monkeypatch, download_impl):
+    module = types.ModuleType("yt_dlp")
+
+    class FakeYoutubeDL:
+        def __init__(self, options):
+            self.options = options
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def download(self, urls):
+            download_impl(self.options, urls)
+
+    module.YoutubeDL = FakeYoutubeDL
+    monkeypatch.setitem(sys.modules, "yt_dlp", module)
+
+    return module
+
+
+URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+
+def test_download_youtube_success(monkeypatch, tmp_path):
+    path = tmp_path / "v.mp4"
+    captured = {}
+
+    def impl(options, urls):
+        captured["options"] = options
+        captured["urls"] = urls
+        path.write_text("video")
+
+    _install_fake_yt_dlp(monkeypatch, impl)
+
+    asyncio.run(
+        download_youtube.__wrapped__(
+            URL, path, settings=RateLimitSettings(), stats=ThrottleStats()
+        )
+    )
+
+    assert path.read_text() == "video"
+    assert captured["urls"] == [URL]
+    assert captured["options"]["noplaylist"] is True
+    assert captured["options"]["format"] == "bestvideo*+bestaudio/best"
+
+
+def test_download_youtube_skips_existing(monkeypatch, tmp_path):
+    path = tmp_path / "v.mp4"
+    path.write_text("done")
+
+    def impl(options, urls):
+        raise AssertionError("should not download an existing file")
+
+    _install_fake_yt_dlp(monkeypatch, impl)
+
+    asyncio.run(
+        download_youtube.__wrapped__(
+            URL, path, settings=RateLimitSettings(), stats=ThrottleStats()
+        )
+    )
+
+
+def test_download_youtube_retries_transient(monkeypatch, tmp_path):
+    path = tmp_path / "v.mp4"
+    calls = {"count": 0}
+
+    def impl(options, urls):
+        calls["count"] += 1
+
+        if calls["count"] == 1:
+            path.write_text("partial")
+            raise Exception("connection reset by peer")
+
+        path.write_text("video")
+
+    _install_fake_yt_dlp(monkeypatch, impl)
+    settings = RateLimitSettings(
+        max_retries=2, retry_base_delay=0.1, retry_max_delay=0.1
+    )
+    stats = ThrottleStats()
+
+    asyncio.run(download_youtube.__wrapped__(URL, path, settings=settings, stats=stats))
+
+    assert calls["count"] == 2
+    assert stats.retries == 1
+    assert path.read_text() == "video"
+
+
+def test_download_youtube_fatal_not_retried(monkeypatch, tmp_path):
+    path = tmp_path / "v.mp4"
+    calls = {"count": 0}
+
+    def impl(options, urls):
+        calls["count"] += 1
+        raise Exception("Video unavailable")
+
+    _install_fake_yt_dlp(monkeypatch, impl)
+    mock_logger = MagicMock()
+    monkeypatch.setattr(youtube_downloader, "logger", mock_logger)
+
+    settings = RateLimitSettings(
+        max_retries=3, retry_base_delay=0.1, retry_max_delay=0.1
+    )
+
+    asyncio.run(
+        download_youtube.__wrapped__(
+            URL, path, settings=settings, stats=ThrottleStats()
+        )
+    )
+
+    assert calls["count"] == 1
+    assert mock_logger.exception.called
+
+
+def test_download_youtube_exhaustion_aborts(monkeypatch, tmp_path):
+    path = tmp_path / "v.mp4"
+
+    def impl(options, urls):
+        raise Exception("connection reset by peer")
+
+    _install_fake_yt_dlp(monkeypatch, impl)
+    settings = RateLimitSettings(
+        max_retries=1, retry_base_delay=0.1, retry_max_delay=0.1
+    )
+
+    with pytest.raises(RetryExhaustedError):
+        asyncio.run(
+            download_youtube.__wrapped__(
+                URL, path, settings=settings, stats=ThrottleStats()
+            )
+        )
+
+
+def test_download_youtube_missing_dependency(monkeypatch, tmp_path):
+    monkeypatch.setitem(sys.modules, "yt_dlp", None)
+    mock_logger = MagicMock()
+    monkeypatch.setattr(youtube_downloader, "logger", mock_logger)
+
+    asyncio.run(
+        download_youtube.__wrapped__(
+            URL,
+            tmp_path / "v.mp4",
+            settings=RateLimitSettings(),
+            stats=ThrottleStats(),
+        )
+    )
+
+    assert mock_logger.error.called
