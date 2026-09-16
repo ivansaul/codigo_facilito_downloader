@@ -1429,3 +1429,70 @@ def test_download_bootcamp_paces_only_real_downloads(monkeypatch, tmp_path):
 
     assert calls == ["01_v1.mp4", "02_v2.mp4"]
     assert _CountingPacer.waits == 1
+
+
+def test_abort_chain_propagates_end_to_end():
+    page = FakePage([FakeResponse(503), FakeResponse(503)])
+    settings = RateLimitSettings(
+        max_retries=1, retry_base_delay=0.1, retry_max_delay=0.1
+    )
+
+    @utils.try_except_request
+    async def run():
+        await throttled_goto(
+            page,
+            "https://x/videos/a",
+            settings,
+            stats=ThrottleStats(),
+            sleep=_record_sleep([]),
+        )
+
+    with pytest.raises(RetryExhaustedError):
+        asyncio.run(run())
+
+
+def test_throttled_goto_redacts_signed_urls(caplog):
+    page = FakePage([FakeResponse(429, {"Retry-After": "1"}), FakeResponse(200)])
+    settings = RateLimitSettings(retry_base_delay=0.1, retry_max_delay=0.1)
+    signed_url = (
+        "https://video-storage.codigofacilito.com/hls/519/14643/playlist.m3u8"
+        "?Policy=secret&Signature=topsecret"
+    )
+
+    with caplog.at_level(logging.WARNING):
+        asyncio.run(
+            throttled_goto(
+                page,
+                signed_url,
+                settings,
+                stats=ThrottleStats(),
+                sleep=_record_sleep([]),
+            )
+        )
+
+    text = " ".join(record.message for record in caplog.records)
+
+    assert "topsecret" not in text
+    assert "Policy=secret" not in text
+    assert "video-storage.codigofacilito.com/hls/519/14643/playlist.m3u8" in text
+
+
+def test_defaults_add_no_waits_with_retry_enabled():
+    page = FakePage([FakeResponse(200)])
+    sleeps = []
+
+    asyncio.run(
+        throttled_goto(
+            page,
+            "https://x/videos/a",
+            RateLimitSettings(),
+            stats=ThrottleStats(),
+            sleep=_record_sleep(sleeps),
+        )
+    )
+
+    pacer = Pacer(RateLimitSettings(), sleep=_record_sleep(sleeps))
+    asyncio.run(pacer.wait())
+    asyncio.run(pacer.wait())
+
+    assert sleeps == []
