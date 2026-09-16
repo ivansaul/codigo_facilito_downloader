@@ -6,6 +6,7 @@ from typing_extensions import Annotated
 
 from facilito import AsyncFacilito, Quality
 from facilito.config import resolve_settings
+from facilito.constants import BROWSER_CHOICES
 from facilito.errors import AbortError
 from facilito.logger import logger
 
@@ -192,6 +193,17 @@ def download(
             show_default="Facilito/config.json",
         ),
     ] = None,
+    browser: Annotated[
+        str | None,
+        typer.Option(
+            "--browser",
+            help=(
+                "Browser to launch: auto (Chrome/Edge if available, else "
+                "bundled Chromium), chrome, msedge or chromium."
+            ),
+            show_default="auto",
+        ),
+    ] = None,
 ):
     """
     Download a bootcamp | course | video | lecture from the given URL.
@@ -225,6 +237,12 @@ def download(
 
     settings = resolve_settings(cli_overrides, config_path)
 
+    if browser is not None and browser not in BROWSER_CHOICES:
+        raise typer.BadParameter(
+            f"Invalid browser '{browser}'. "
+            f"Choose one of: {', '.join(BROWSER_CHOICES)}."
+        )
+
     asyncio.run(
         _download(
             url,
@@ -232,6 +250,7 @@ def download(
             override=override,
             threads=threads,
             settings=settings,
+            browser=browser,
         )
     )
 
@@ -247,7 +266,9 @@ async def _logout():
 
 
 async def _download(url: str, **kwargs):
-    async with AsyncFacilito() as client:
+    browser = kwargs.pop("browser", None)
+
+    async with AsyncFacilito(browser=browser) as client:
         try:
             await client.download(url, **kwargs)
 

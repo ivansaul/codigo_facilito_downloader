@@ -216,6 +216,7 @@ Opciones:
 - `--override`, `-w`: Sobrescribe el archivo existente si existe (por defecto: `False`).
 - `--threads`, `-t`: Número de hilos a utilizar (por defecto: `10`).
 - Opciones de rate limiting (`--request-delay`, `--request-jitter`, `--download-delay`, `--retry/--no-retry`, `--max-retries`, `--retry-base-delay`, `--retry-max-delay`, `--retry-after-max`, `--block-detection/--no-block-detection`, `--config`): ver [Rate limiting](#rate-limiting).
+- `--browser`: Navegador a lanzar (`auto`, `chrome`, `msedge`, `chromium`); ver [Navegador](#navegador).
 
 > [!TIP]
 > Para visualizar todas las opciones disponibles, ejecuta `facilito download --help`.
@@ -346,6 +347,20 @@ facilito download URL --no-retry
 
 > [!IMPORTANT]
 > Si se agotan los reintentos, la ejecución se detiene con un error (no se salta la unidad). `--threads` sigue controlando el paralelismo interno de `vsd` y puede provocar throttling por IP aunque el bucle externo esté regulado.
+
+### Navegador
+
+Por defecto se lanza **Google Chrome** (o Edge) si está instalado, porque el Chromium que incluye Playwright **no trae códecs propietarios (H.264/AAC)** y el reproductor muestra `No compatible source was found for this media.`. Si no encuentra Chrome/Edge, cae al Chromium incluido: la descarga con `vsd` sigue funcionando, pero la reproducción dentro del navegador automatizado puede fallar y, en algunos players, eso impide que se solicite el `.m3u8` y se capture la URL.
+
+```console
+facilito download URL --browser chrome
+```
+
+Valores: `auto` (por defecto), `chrome`, `msedge`, `chromium`. También puedes fijarlo con la variable de entorno `FACILITO_BROWSER`:
+
+```console
+FACILITO_BROWSER=chrome facilito download URL
+```
 
 ## Cómo contribuir
 

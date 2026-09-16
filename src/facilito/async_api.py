@@ -1,10 +1,17 @@
+import os
 from pathlib import Path
 
 from playwright.async_api import BrowserContext, Page, async_playwright
 from playwright_stealth import Stealth
 
 from . import collectors
-from .constants import BASE_URL, LOGIN_URL, SESSION_FILE
+from .constants import (
+    BASE_URL,
+    BROWSER_CHANNELS,
+    BROWSER_ENV_VAR,
+    LOGIN_URL,
+    SESSION_FILE,
+)
 from .errors import LoginError
 from .helpers import read_json
 from .logger import logger
@@ -19,13 +26,44 @@ from .utils import (
 
 
 class AsyncFacilito:
-    def __init__(self, headless=False):
+    def __init__(self, headless=False, browser: str | None = None):
         self.headless = headless
+        self.browser = browser or os.environ.get(BROWSER_ENV_VAR) or "auto"
         self.authenticated = False
+
+    async def _launch_browser(self):
+        """
+        Launch a browser with proprietary media codecs when possible.
+
+        The bundled Chromium lacks H.264/AAC, which breaks video playback and
+        can stop the player from requesting the HLS playlist. Prefer an
+        installed Chrome/Edge channel and fall back to bundled Chromium.
+        """
+        if self.browser == "chromium":
+            return await self._playwright.chromium.launch(headless=self.headless)
+
+        channels = BROWSER_CHANNELS if self.browser == "auto" else (self.browser,)
+
+        for channel in channels:
+            try:
+                return await self._playwright.chromium.launch(
+                    channel=channel, headless=self.headless
+                )
+            except Exception as error:
+                logger.debug(f"Could not launch browser channel '{channel}': {error}")
+
+        if self.browser != "auto":
+            raise RuntimeError(f"Browser '{self.browser}' is not available")
+
+        logger.info(
+            "Using bundled Chromium (no proprietary codecs); "
+            "install Chrome or use --browser to change this."
+        )
+        return await self._playwright.chromium.launch(headless=self.headless)
 
     async def __aenter__(self):
         self._playwright = await async_playwright().start()
-        self._browser = await self._playwright.chromium.launch(headless=self.headless)
+        self._browser = await self._launch_browser()
         self._context = await self._browser.new_context(
             is_mobile=True,
             java_script_enabled=True,

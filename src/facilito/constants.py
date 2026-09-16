@@ -6,6 +6,10 @@ APP_DIR = Path(APP_NAME)
 CONFIG_FILE = APP_DIR / "config.json"
 CONFIG_ENV_VAR = "FACILITO_CONFIG"
 
+BROWSER_ENV_VAR = "FACILITO_BROWSER"
+BROWSER_CHANNELS = ("chrome", "msedge")
+BROWSER_CHOICES = ("auto", *BROWSER_CHANNELS, "chromium")
+
 SESSION_DIR = Path(tempfile.gettempdir()) / APP_NAME
 SESSION_FILE = SESSION_DIR / "state.json"
 

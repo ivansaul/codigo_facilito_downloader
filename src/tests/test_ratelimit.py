@@ -225,6 +225,7 @@ def test_cli_download_help_lists_rate_limit_options():
         "--block-detection",
         "--no-block-detection",
         "--config",
+        "--browser",
     ]:
         assert option in result.output
 
@@ -1496,3 +1497,98 @@ def test_defaults_add_no_waits_with_retry_enabled():
     asyncio.run(pacer.wait())
 
     assert sleeps == []
+
+
+class FakeChromiumLauncher:
+    def __init__(self, fail_channels=()):
+        self.calls = []
+        self._fail = set(fail_channels)
+
+    async def launch(self, **kwargs):
+        self.calls.append(kwargs)
+        channel = kwargs.get("channel")
+
+        if channel in self._fail:
+            raise RuntimeError(f"channel '{channel}' is not installed")
+
+        return SimpleNamespace(chromium=self)
+
+
+def _client_with(launcher, browser=None):
+    client = AsyncFacilito(browser=browser)
+    client._playwright = SimpleNamespace(chromium=launcher)
+    return client
+
+
+def test_launch_browser_auto_prefers_chrome():
+    launcher = FakeChromiumLauncher()
+
+    asyncio.run(_client_with(launcher)._launch_browser())
+
+    assert launcher.calls[0]["channel"] == "chrome"
+
+
+def test_launch_browser_auto_falls_back_to_chromium():
+    launcher = FakeChromiumLauncher(fail_channels={"chrome", "msedge"})
+
+    asyncio.run(_client_with(launcher)._launch_browser())
+
+    assert [call.get("channel") for call in launcher.calls] == [
+        "chrome",
+        "msedge",
+        None,
+    ]
+
+
+def test_launch_browser_explicit_chromium():
+    launcher = FakeChromiumLauncher()
+
+    asyncio.run(_client_with(launcher, browser="chromium")._launch_browser())
+
+    assert launcher.calls == [{"headless": False}]
+
+
+def test_launch_browser_explicit_missing_channel_raises():
+    launcher = FakeChromiumLauncher(fail_channels={"chrome"})
+
+    with pytest.raises(RuntimeError):
+        asyncio.run(_client_with(launcher, browser="chrome")._launch_browser())
+
+
+def test_browser_env_var(monkeypatch):
+    monkeypatch.setenv("FACILITO_BROWSER", "chrome")
+
+    assert AsyncFacilito().browser == "chrome"
+
+
+def test_explicit_browser_overrides_env(monkeypatch):
+    monkeypatch.setenv("FACILITO_BROWSER", "chrome")
+
+    assert AsyncFacilito(browser="chromium").browser == "chromium"
+
+
+def test_cli_download_forwards_browser(monkeypatch, tmp_path):
+    captured = {}
+
+    async def fake_download(url, **kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(cli, "_download", fake_download)
+    monkeypatch.setattr(config.constants, "CONFIG_FILE", tmp_path / "missing.json")
+
+    result = runner.invoke(
+        cli.app, ["download", "https://x/videos/a", "--browser", "chrome"]
+    )
+
+    assert result.exit_code == 0
+    assert captured["browser"] == "chrome"
+
+
+def test_cli_download_rejects_invalid_browser(monkeypatch, tmp_path):
+    monkeypatch.setattr(config.constants, "CONFIG_FILE", tmp_path / "missing.json")
+
+    result = runner.invoke(
+        cli.app, ["download", "https://x/videos/a", "--browser", "bogus"]
+    )
+
+    assert result.exit_code == 2
