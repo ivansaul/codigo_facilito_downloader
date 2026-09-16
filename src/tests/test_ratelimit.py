@@ -20,6 +20,7 @@ from facilito.errors import (
 )
 from facilito.ratelimit import (
     Detection,
+    Pacer,
     RateLimitSettings,
     RetryPolicy,
     RetrySignal,
@@ -27,8 +28,10 @@ from facilito.ratelimit import (
     classify_playwright_response,
     classify_vsd_error,
     parse_retry_after,
+    redact_url,
     run_with_retry,
     sleep_with_jitter,
+    throttled_goto,
 )
 
 runner = CliRunner()
@@ -682,3 +685,201 @@ def test_classify_vsd_block_detection_disabled():
     assert classify_vsd_error(1, "403 forbidden\n", block_detection_enabled=False) is (
         Detection.RETRYABLE_TRANSIENT
     )
+
+
+class FakeResponse:
+    def __init__(self, status, headers=None, url="https://x/videos/a"):
+        self.status = status
+        self.headers = headers or {}
+        self.url = url
+
+
+class FakePage:
+    def __init__(self, responses, body=""):
+        self._responses = list(responses)
+        self._body = body
+        self.goto_calls = 0
+
+    async def goto(self, url, **kwargs):
+        self.goto_calls += 1
+        return self._responses.pop(0)
+
+    async def content(self):
+        return self._body
+
+
+def test_redact_url_strips_query():
+    assert redact_url("https://x/videos/a?token=secret") == "https://x/videos/a"
+
+
+def test_pacer_first_operation_does_not_wait():
+    settings = RateLimitSettings(download_delay=2.0, request_jitter=0.0)
+    sleeps = []
+    pacer = Pacer(settings, sleep=_record_sleep(sleeps))
+
+    asyncio.run(pacer.wait())
+    assert sleeps == []
+
+    asyncio.run(pacer.wait())
+    assert sleeps == [2.0]
+
+
+def test_pacer_delay_with_jitter_range():
+    settings = RateLimitSettings(download_delay=2.0, request_jitter=1.0)
+    sleeps = []
+    pacer = Pacer(settings, sleep=_record_sleep(sleeps), rng=random.Random(3))
+
+    asyncio.run(pacer.wait())
+    asyncio.run(pacer.wait())
+
+    assert 2.0 <= sleeps[0] <= 3.0
+
+
+def test_throttled_goto_success_without_pacing():
+    page = FakePage([FakeResponse(200)])
+    sleeps = []
+
+    response = asyncio.run(
+        throttled_goto(
+            page,
+            "https://x/videos/a",
+            RateLimitSettings(),
+            stats=ThrottleStats(),
+            sleep=_record_sleep(sleeps),
+        )
+    )
+
+    assert response.status == 200
+    assert page.goto_calls == 1
+    assert sleeps == []
+
+
+def test_throttled_goto_applies_request_pacing():
+    page = FakePage([FakeResponse(200)])
+    settings = RateLimitSettings(request_delay=1.0, request_jitter=1.0)
+    sleeps = []
+
+    asyncio.run(
+        throttled_goto(
+            page,
+            "https://x/videos/a",
+            settings,
+            stats=ThrottleStats(),
+            sleep=_record_sleep(sleeps),
+            rng=random.Random(5),
+        )
+    )
+
+    assert len(sleeps) == 1
+    assert 1.0 <= sleeps[0] <= 2.0
+
+
+def test_throttled_goto_retries_transient_response():
+    page = FakePage([FakeResponse(503), FakeResponse(200)])
+    settings = RateLimitSettings(retry_base_delay=1.0, retry_max_delay=2.0)
+    stats = ThrottleStats()
+
+    response = asyncio.run(
+        throttled_goto(
+            page,
+            "https://x/videos/a",
+            settings,
+            stats=stats,
+            sleep=_record_sleep([]),
+        )
+    )
+
+    assert response.status == 200
+    assert page.goto_calls == 2
+    assert stats.retries == 1
+
+
+def test_throttled_goto_honors_retry_after_cap():
+    page = FakePage([FakeResponse(429, {"Retry-After": "120"}), FakeResponse(200)])
+    settings = RateLimitSettings(retry_after_max=60.0)
+    sleeps = []
+
+    asyncio.run(
+        throttled_goto(
+            page,
+            "https://x/videos/a",
+            settings,
+            stats=ThrottleStats(),
+            sleep=_record_sleep(sleeps),
+        )
+    )
+
+    assert sleeps == [60.0]
+
+
+def test_throttled_goto_retries_challenge():
+    challenge = FakeResponse(403, {"cf-mitigated": "challenge"})
+    page = FakePage([challenge, FakeResponse(200)])
+    stats = ThrottleStats()
+
+    response = asyncio.run(
+        throttled_goto(
+            page,
+            "https://x/videos/a",
+            RateLimitSettings(),
+            stats=stats,
+            sleep=_record_sleep([]),
+        )
+    )
+
+    assert response.status == 200
+    assert stats.retries == 1
+    assert stats.throttles == 1
+
+
+def test_throttled_goto_login_failure_not_retried():
+    sign_in = FakeResponse(403, {}, url="https://x/users/sign_in")
+    page = FakePage([sign_in], body='<form id="new_user">')
+
+    with pytest.raises(LoginError):
+        asyncio.run(
+            throttled_goto(
+                page,
+                "https://x/videos/a",
+                RateLimitSettings(),
+                stats=ThrottleStats(),
+                sleep=_record_sleep([]),
+            )
+        )
+
+    assert page.goto_calls == 1
+
+
+def test_throttled_goto_exhaustion_raises():
+    page = FakePage([FakeResponse(503), FakeResponse(503)])
+    settings = RateLimitSettings(
+        max_retries=1, retry_base_delay=0.1, retry_max_delay=0.1
+    )
+
+    with pytest.raises(RetryExhaustedError):
+        asyncio.run(
+            throttled_goto(
+                page,
+                "https://x/videos/a",
+                settings,
+                stats=ThrottleStats(),
+                sleep=_record_sleep([]),
+            )
+        )
+
+    assert page.goto_calls == 2
+
+
+def test_throttled_goto_unknown_403_raises_signal():
+    page = FakePage([FakeResponse(403)], body="")
+
+    with pytest.raises(RetrySignal):
+        asyncio.run(
+            throttled_goto(
+                page,
+                "https://x/videos/a",
+                RateLimitSettings(),
+                stats=ThrottleStats(),
+                sleep=_record_sleep([]),
+            )
+        )

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import timezone
 from email.utils import parsedate_to_datetime
 from enum import Enum
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -399,3 +400,125 @@ async def run_with_retry(
                 f"after {wait:.2f}s ({failure.reason})"
             )
             await sleep(wait)
+
+
+def redact_url(url: str) -> str:
+    """Strip the query string from a URL so secrets are not logged."""
+    parts = urlsplit(url)
+
+    if not parts.scheme:
+        return url
+
+    return f"{parts.scheme}://{parts.netloc}{parts.path}"
+
+
+async def _safe_content(page) -> str | None:
+    try:
+        return await page.content()
+    except Exception:
+        return None
+
+
+class Pacer:
+    """Applies the inter-download delay between consecutive real downloads."""
+
+    def __init__(
+        self,
+        settings: RateLimitSettings,
+        *,
+        sleep: Sleep = asyncio.sleep,
+        rng: random.Random = _RNG,
+    ):
+        self._settings = settings
+        self._sleep = sleep
+        self._rng = rng
+        self._started = False
+
+    async def wait(self):
+        """Wait before a real download; the first operation never waits."""
+        if self._started and self._settings.download_delay > 0:
+            await sleep_with_jitter(
+                self._settings.download_delay,
+                self._settings.request_jitter,
+                sleep=self._sleep,
+                rng=self._rng,
+            )
+
+        self._started = True
+
+
+async def throttled_goto(
+    page,
+    url: str,
+    settings: RateLimitSettings,
+    *,
+    stats: ThrottleStats,
+    sleep: Sleep = asyncio.sleep,
+    rng: random.Random = _RNG,
+    wait_until: str | None = None,
+):
+    """
+    Navigate with request pacing, rate-limit detection and retry/backoff.
+
+    :raises LoginError: On a classified authentication failure.
+    :raises RetryExhaustedError: When retries are exhausted.
+    """
+    policy = RetryPolicy.from_settings(settings)
+    label = redact_url(url)
+
+    if settings.request_delay > 0 or settings.request_jitter > 0:
+        await sleep_with_jitter(
+            settings.request_delay,
+            settings.request_jitter,
+            sleep=sleep,
+            rng=rng,
+        )
+
+    async def navigate():
+        kwargs = {"wait_until": wait_until} if wait_until else {}
+        response = await page.goto(url, **kwargs)
+
+        status = response.status if response is not None else None
+        headers = (
+            {str(key).lower(): value for key, value in (response.headers or {}).items()}
+            if response is not None
+            else {}
+        )
+        final_url = response.url if response is not None else None
+
+        detection = classify_playwright_response(
+            status,
+            headers,
+            None,
+            final_url,
+            block_detection_enabled=settings.block_detection_enabled,
+        )
+
+        if detection is None:
+            return response
+
+        if status in (401, 403) and settings.block_detection_enabled:
+            body = await _safe_content(page)
+            detection = classify_playwright_response(
+                status,
+                headers,
+                body,
+                final_url,
+                block_detection_enabled=True,
+            )
+
+            if detection is None:
+                return response
+
+        retry_after = parse_retry_after(headers.get("retry-after"))
+
+        if detection is Detection.RETRYABLE_THROTTLE:
+            logger.warning(f"Rate limit signal on {label}: HTTP {status}")
+        elif detection is Detection.RETRYABLE_TRANSIENT:
+            logger.warning(f"Transient response on {label}: HTTP {status}")
+
+        raise RetrySignal(detection, f"HTTP {status}", retry_after=retry_after)
+
+    return await run_with_retry(
+        navigate, policy, stats, label=label, sleep=sleep, rng=rng
+    )
