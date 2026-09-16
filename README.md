@@ -215,6 +215,7 @@ Opciones:
 - `--quality`, `-q`: Especifica la calidad del video (por defecto: `max`). Opciones disponibles: `[max|1080p|720p|480p|360p|min]`.
 - `--override`, `-w`: Sobrescribe el archivo existente si existe (por defecto: `False`).
 - `--threads`, `-t`: Número de hilos a utilizar (por defecto: `10`).
+- Opciones de rate limiting (`--request-delay`, `--request-jitter`, `--download-delay`, `--retry/--no-retry`, `--max-retries`, `--retry-base-delay`, `--retry-max-delay`, `--retry-after-max`, `--block-detection/--no-block-detection`, `--config`): ver [Rate limiting](#rate-limiting).
 
 > [!TIP]
 > Para visualizar todas las opciones disponibles, ejecuta `facilito download --help`.
