@@ -1,10 +1,25 @@
 import asyncio
 
+import pytest
+
 from facilito import state
+from facilito.downloaders import bootcamp as bootcamp_downloader
+from facilito.downloaders import course as course_downloader
 from facilito.downloaders import unit as unit_downloader
 from facilito.downloaders import video as video_downloader
 from facilito.downloaders import youtube as youtube_downloader
-from facilito.models import TypeUnit, Unit, UnitOutcome, Video, VideoProvider
+from facilito.errors import RetryExhaustedError
+from facilito.models import (
+    Bootcamp,
+    Chapter,
+    Course,
+    Module,
+    TypeUnit,
+    Unit,
+    UnitOutcome,
+    Video,
+    VideoProvider,
+)
 from facilito.ratelimit import RateLimitSettings, ThrottleStats
 from facilito.state import (
     RunState,
@@ -242,3 +257,168 @@ def test_download_unit_returns_hls_outcome(monkeypatch, tmp_path):
 
     assert outcome.success is True
     assert outcome.provider == "hls"
+
+
+def _course():
+    return Course(
+        name="c",
+        slug="c",
+        url="https://x/cursos/c",
+        chapters=[
+            Chapter(
+                name="ch",
+                slug="ch",
+                units=[
+                    Unit(
+                        type=TypeUnit.VIDEO,
+                        name="v",
+                        slug="v",
+                        url="https://x/videos/v",
+                    )
+                ],
+            )
+        ],
+    )
+
+
+def test_download_course_skips_ok_units(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
+    monkeypatch.setattr(course_downloader, "DIR_PATH", tmp_path)
+
+    calls = []
+
+    async def fake_download_unit(*args, **kwargs):
+        calls.append(args)
+        return UnitOutcome(success=True)
+
+    async def fake_save_page(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(course_downloader, "download_unit", fake_download_unit)
+    monkeypatch.setattr(course_downloader, "save_page", fake_save_page)
+
+    course = _course()
+    unit = course.chapters[0].units[0]
+
+    chapter_dir = tmp_path / "c" / "01_ch"
+    chapter_dir.mkdir(parents=True)
+    output = chapter_dir / "01_v.mp4"
+    output.write_text("v")
+
+    run = RunState(url=course.url, kind="course", slug="c")
+    run.record(output.as_posix(), unit, UnitOutcome(success=True))
+
+    asyncio.run(
+        course_downloader.download_course(
+            None, course, state=run, settings=RateLimitSettings()
+        )
+    )
+
+    assert calls == []
+
+
+def test_download_course_records_outcome(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
+    monkeypatch.setattr(course_downloader, "DIR_PATH", tmp_path)
+
+    async def fake_download_unit(*args, **kwargs):
+        return UnitOutcome(success=False, error="boom")
+
+    async def fake_save_page(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(course_downloader, "download_unit", fake_download_unit)
+    monkeypatch.setattr(course_downloader, "save_page", fake_save_page)
+
+    run = RunState(url="https://x/cursos/c", kind="course", slug="c")
+
+    asyncio.run(
+        course_downloader.download_course(
+            None, _course(), state=run, settings=RateLimitSettings()
+        )
+    )
+
+    loaded = load_state("c")
+    assert loaded is not None
+    assert loaded.failures()[0].error == "boom"
+
+
+def test_download_course_abort_records_and_saves(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
+    monkeypatch.setattr(course_downloader, "DIR_PATH", tmp_path)
+
+    async def fake_download_unit(*args, **kwargs):
+        raise RetryExhaustedError("unit", 2, "HTTP 429")
+
+    async def fake_save_page(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(course_downloader, "download_unit", fake_download_unit)
+    monkeypatch.setattr(course_downloader, "save_page", fake_save_page)
+
+    run = RunState(url="https://x/cursos/c", kind="course", slug="c")
+
+    with pytest.raises(RetryExhaustedError):
+        asyncio.run(
+            course_downloader.download_course(
+                None, _course(), state=run, settings=RateLimitSettings()
+            )
+        )
+
+    loaded = load_state("c")
+    assert loaded is not None
+    assert loaded.failures()[0].error is not None
+
+
+def test_download_bootcamp_skips_ok_units(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
+    monkeypatch.setattr(bootcamp_downloader, "DIR_PATH", tmp_path)
+
+    calls = []
+
+    async def fake_download_unit(*args, **kwargs):
+        calls.append(args)
+        return UnitOutcome(success=True)
+
+    async def fake_save_page(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(bootcamp_downloader, "download_unit", fake_download_unit)
+    monkeypatch.setattr(bootcamp_downloader, "save_page", fake_save_page)
+
+    bootcamp = Bootcamp(
+        name="b",
+        slug="b",
+        url="https://x/programas/b",
+        modules=[
+            Module(
+                name="m",
+                slug="m",
+                units=[
+                    Unit(
+                        type=TypeUnit.VIDEO,
+                        name="v",
+                        slug="v",
+                        url="https://x/videos/v",
+                    )
+                ],
+            )
+        ],
+    )
+    unit = bootcamp.modules[0].units[0]
+
+    module_dir = tmp_path / "b" / "01_m"
+    module_dir.mkdir(parents=True)
+    output = module_dir / "01_v.mp4"
+    output.write_text("v")
+
+    run = RunState(url=bootcamp.url, kind="bootcamp", slug="b")
+    run.record(output.as_posix(), unit, UnitOutcome(success=True))
+
+    asyncio.run(
+        bootcamp_downloader.download_bootcamp(
+            None, bootcamp, state=run, settings=RateLimitSettings()
+        )
+    )
+
+    assert calls == []
