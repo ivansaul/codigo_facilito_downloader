@@ -397,6 +397,29 @@ facilito download https://codigofacilito.com/cursos/go-profesional -q 720p
 > [!NOTE]
 > No se descargan playlists, subtítulos ni metadatos de YouTube. Videos privados, eliminados, con embed deshabilitado o bloqueados por región fallan con un mensaje claro en el log. La ruta HLS (vídeos normales con `vsd`) no cambia.
 
+## Reanudar y fallos
+
+Cada curso/bootcamp guarda su progreso en `Facilito/<slug>/.facilito.json` (manifest por curso). Gracias a eso:
+
+- Si el curso **ya se completó** y los archivos siguen ahí, volver a ejecutar `facilito download <url>` no vuelve a recorrerlo (ni descarga ni navega unidades). Usa `--override` para rehacerlo todo.
+- Si hubo **fallos**, un re-run normal los **reintenta automáticamente** sin volver a navegar/descargar las unidades que ya estaban bien.
+- `--retry-failed` reintenta **solo** los fallos registrados, sin recorrer el curso.
+- `--status` muestra el estado (completado / en progreso) y los fallos pendientes.
+
+```console
+# Ver progreso y fallos
+facilito download https://codigofacilito.com/cursos/go-profesional --status
+
+# Reintentar solo lo que falló
+facilito download https://codigofacilito.com/cursos/go-profesional --retry-failed
+
+# Rehacer todo desde cero
+facilito download https://codigofacilito.com/cursos/go-profesional --override
+```
+
+> [!NOTE]
+> El estado es por curso y por máquina. Si borras los archivos de salida, el manifest se re-verifica y se vuelve a recorrer lo que falte. Si el curso añade unidades nuevas upstream, no se detectan con el manifest en `completed`; usa `--override` para refrescar.
+
 ## Cómo contribuir
 
 ¡Todas las contribuciones son bienvenidas!. Antes de enviar cambios, revisa la guía [CONTRIBUTING.md](./CONTRIBUTING.md) para conocer las pautas del proyecto.
