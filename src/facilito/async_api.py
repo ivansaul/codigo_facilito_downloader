@@ -289,7 +289,10 @@ class AsyncFacilito:
         )
 
         for entry in failures:
-            logger.info(f"  - {entry.path}: {entry.error or 'failed'}")
+            when = entry.updated_at or "unknown"
+            logger.info(
+                f"  - {entry.path}: {entry.error or 'failed'} " f"(last attempt {when})"
+            )
 
     async def _retry_failures(self, url, run, settings, stats, **kwargs) -> None:
         from pathlib import Path
