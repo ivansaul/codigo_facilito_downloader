@@ -51,7 +51,11 @@ def test_run_state_record_and_queries(tmp_path):
     assert run.failures() == []
 
     failed_path = (tmp_path / "b.mp4").as_posix()
-    run.record(failed_path, _unit("https://x/videos/b"), UnitOutcome(False, "boom"))
+    run.record(
+        failed_path,
+        _unit("https://x/videos/b"),
+        UnitOutcome(success=False, error="boom"),
+    )
 
     assert run.completed() is False
     assert len(run.failures()) == 1
