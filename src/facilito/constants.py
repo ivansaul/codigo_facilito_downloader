@@ -10,6 +10,10 @@ BROWSER_ENV_VAR = "FACILITO_BROWSER"
 BROWSER_CHANNELS = ("chrome", "msedge")
 BROWSER_CHOICES = ("auto", *BROWSER_CHANNELS, "chromium")
 
+WINDOW_ENV_VAR = "FACILITO_WINDOW"
+WINDOW_CHOICES = ("offscreen", "visible", "headless")
+OFFSCREEN_ARGS = ("--window-position=-32000,-32000", "--start-minimized")
+
 SESSION_DIR = Path(tempfile.gettempdir()) / APP_NAME
 SESSION_FILE = SESSION_DIR / "state.json"
 

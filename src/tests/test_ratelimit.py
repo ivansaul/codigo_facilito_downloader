@@ -234,6 +234,7 @@ def test_cli_download_help_lists_rate_limit_options():
         "--no-block-detection",
         "--config",
         "--browser",
+        "--window",
     ]:
         assert option in result.output
 
@@ -1550,10 +1551,12 @@ def test_launch_browser_auto_falls_back_to_chromium():
 
 def test_launch_browser_explicit_chromium():
     launcher = FakeChromiumLauncher()
+    client = AsyncFacilito(browser="chromium", window="visible")
+    client._playwright = SimpleNamespace(chromium=launcher)
 
-    asyncio.run(_client_with(launcher, browser="chromium")._launch_browser())
+    asyncio.run(client._launch_browser())
 
-    assert launcher.calls == [{"headless": False}]
+    assert launcher.calls == [{"headless": False, "args": []}]
 
 
 def test_launch_browser_explicit_missing_channel_raises():
@@ -1805,3 +1808,98 @@ def test_fetch_video_uses_page_markup(monkeypatch, caplog):
 
     assert result.url == "https://data.codigofacilito.com/hls/1/2/playlist.m3u8"
     assert any("page markup" in record.message for record in caplog.records)
+
+
+def test_window_defaults_to_offscreen(monkeypatch):
+    monkeypatch.delenv("FACILITO_WINDOW", raising=False)
+
+    assert AsyncFacilito().window == "offscreen"
+
+
+def test_window_env_var(monkeypatch):
+    monkeypatch.setenv("FACILITO_WINDOW", "visible")
+
+    assert AsyncFacilito().window == "visible"
+
+
+def test_explicit_window_overrides_env(monkeypatch):
+    monkeypatch.setenv("FACILITO_WINDOW", "visible")
+
+    assert AsyncFacilito(window="headless").window == "headless"
+
+
+def test_window_headless_sets_headless():
+    assert AsyncFacilito(window="headless").headless is True
+
+
+def test_launch_browser_offscreen_passes_args(monkeypatch):
+    monkeypatch.delenv("FACILITO_WINDOW", raising=False)
+    launcher = FakeChromiumLauncher()
+
+    asyncio.run(_client_with(launcher, browser="chromium")._launch_browser())
+
+    assert launcher.calls[0]["args"] == [
+        "--window-position=-32000,-32000",
+        "--start-minimized",
+    ]
+
+
+def test_launch_browser_visible_has_no_args():
+    launcher = FakeChromiumLauncher()
+    client = AsyncFacilito(browser="chromium", window="visible")
+    client._playwright = SimpleNamespace(chromium=launcher)
+
+    asyncio.run(client._launch_browser())
+
+    assert launcher.calls[0]["args"] == []
+
+
+def test_cli_download_forwards_window(monkeypatch, tmp_path):
+    captured = {}
+
+    async def fake_download(url, **kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(cli, "_download", fake_download)
+    monkeypatch.setattr(config.constants, "CONFIG_FILE", tmp_path / "missing.json")
+
+    result = runner.invoke(
+        cli.app, ["download", "https://x/videos/a", "--window", "visible"]
+    )
+
+    assert result.exit_code == 0
+    assert captured["window"] == "visible"
+
+
+def test_cli_download_rejects_invalid_window(monkeypatch, tmp_path):
+    monkeypatch.setattr(config.constants, "CONFIG_FILE", tmp_path / "missing.json")
+
+    result = runner.invoke(
+        cli.app, ["download", "https://x/videos/a", "--window", "bogus"]
+    )
+
+    assert result.exit_code == 2
+
+
+def test_cli_login_forces_visible(monkeypatch):
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def login(self):
+            return None
+
+    monkeypatch.setattr(cli, "AsyncFacilito", FakeClient)
+
+    result = runner.invoke(cli.app, ["login"])
+
+    assert result.exit_code == 0
+    assert captured["window"] == "visible"

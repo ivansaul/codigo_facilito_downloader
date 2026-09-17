@@ -10,7 +10,9 @@ from .constants import (
     BROWSER_CHANNELS,
     BROWSER_ENV_VAR,
     LOGIN_URL,
+    OFFSCREEN_ARGS,
     SESSION_FILE,
+    WINDOW_ENV_VAR,
 )
 from .errors import LoginError
 from .helpers import read_json
@@ -26,9 +28,15 @@ from .utils import (
 
 
 class AsyncFacilito:
-    def __init__(self, headless=False, browser: str | None = None):
-        self.headless = headless
+    def __init__(
+        self,
+        headless=False,
+        browser: str | None = None,
+        window: str | None = None,
+    ):
         self.browser = browser or os.environ.get(BROWSER_ENV_VAR) or "auto"
+        self.window = window or os.environ.get(WINDOW_ENV_VAR) or "offscreen"
+        self.headless = headless or self.window == "headless"
         self.authenticated = False
 
     async def _launch_browser(self):
@@ -39,15 +47,19 @@ class AsyncFacilito:
         can stop the player from requesting the HLS playlist. Prefer an
         installed Chrome/Edge channel and fall back to bundled Chromium.
         """
+        args = list(OFFSCREEN_ARGS) if self.window == "offscreen" else []
+
         if self.browser == "chromium":
-            return await self._playwright.chromium.launch(headless=self.headless)
+            return await self._playwright.chromium.launch(
+                headless=self.headless, args=args
+            )
 
         channels = BROWSER_CHANNELS if self.browser == "auto" else (self.browser,)
 
         for channel in channels:
             try:
                 return await self._playwright.chromium.launch(
-                    channel=channel, headless=self.headless
+                    channel=channel, headless=self.headless, args=args
                 )
             except Exception as error:
                 logger.debug(f"Could not launch browser channel '{channel}': {error}")
@@ -59,7 +71,7 @@ class AsyncFacilito:
             "Using bundled Chromium (no proprietary codecs); "
             "install Chrome or use --browser to change this."
         )
-        return await self._playwright.chromium.launch(headless=self.headless)
+        return await self._playwright.chromium.launch(headless=self.headless, args=args)
 
     async def __aenter__(self):
         self._playwright = await async_playwright().start()

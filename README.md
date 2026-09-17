@@ -217,6 +217,7 @@ Opciones:
 - `--threads`, `-t`: Número de hilos a utilizar (por defecto: `10`).
 - Opciones de rate limiting (`--request-delay`, `--request-jitter`, `--download-delay`, `--retry/--no-retry`, `--max-retries`, `--retry-base-delay`, `--retry-max-delay`, `--retry-after-max`, `--block-detection/--no-block-detection`, `--config`): ver [Rate limiting](#rate-limiting).
 - `--browser`: Navegador a lanzar (`auto`, `chrome`, `msedge`, `chromium`); ver [Navegador](#navegador).
+- `--window`: Modo de ventana (`offscreen`, `visible`, `headless`); ver [Navegador](#navegador).
 
 > [!TIP]
 > Para visualizar todas las opciones disponibles, ejecuta `facilito download --help`.
@@ -360,6 +361,19 @@ Valores: `auto` (por defecto), `chrome`, `msedge`, `chromium`. También puedes f
 
 ```console
 FACILITO_BROWSER=chrome facilito download URL
+```
+
+Modo de ventana (`--window`, o `FACILITO_WINDOW`):
+
+- `offscreen` (por defecto en `download`): abre Chrome headful pero **fuera de pantalla y minimizado**, así no aparece ni roba el foco. Mantiene la efectividad (Cloudflare y la captura del `.m3u8` siguen funcionando), a diferencia de `headless`.
+- `visible`: ventana normal en pantalla (útil para depurar).
+- `headless`: sin ventana, pero **Cloudflare suele bloquearlo**; no recomendado.
+
+`facilito login` siempre abre una ventana visible para que puedas autenticarte.
+
+```console
+facilito download URL --window visible
+FACILITO_WINDOW=visible facilito download URL
 ```
 
 ### YouTube

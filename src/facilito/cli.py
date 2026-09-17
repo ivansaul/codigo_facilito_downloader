@@ -6,7 +6,7 @@ from typing_extensions import Annotated
 
 from facilito import AsyncFacilito, Quality
 from facilito.config import resolve_settings
-from facilito.constants import BROWSER_CHOICES
+from facilito.constants import BROWSER_CHOICES, WINDOW_CHOICES
 from facilito.errors import AbortError
 from facilito.logger import logger
 
@@ -204,6 +204,17 @@ def download(
             show_default="auto",
         ),
     ] = None,
+    window: Annotated[
+        str | None,
+        typer.Option(
+            "--window",
+            help=(
+                "Browser window mode: offscreen (default, no popup), "
+                "visible or headless (may be blocked by Cloudflare)."
+            ),
+            show_default="offscreen",
+        ),
+    ] = None,
 ):
     """
     Download a bootcamp | course | video | lecture from the given URL.
@@ -243,6 +254,11 @@ def download(
             f"Choose one of: {', '.join(BROWSER_CHOICES)}."
         )
 
+    if window is not None and window not in WINDOW_CHOICES:
+        raise typer.BadParameter(
+            f"Invalid window '{window}'. Choose one of: {', '.join(WINDOW_CHOICES)}."
+        )
+
     asyncio.run(
         _download(
             url,
@@ -251,12 +267,13 @@ def download(
             threads=threads,
             settings=settings,
             browser=browser,
+            window=window,
         )
     )
 
 
 async def _login():
-    async with AsyncFacilito() as client:
+    async with AsyncFacilito(window="visible") as client:
         await client.login()
 
 
@@ -267,8 +284,9 @@ async def _logout():
 
 async def _download(url: str, **kwargs):
     browser = kwargs.pop("browser", None)
+    window = kwargs.pop("window", None)
 
-    async with AsyncFacilito(browser=browser) as client:
+    async with AsyncFacilito(browser=browser, window=window) as client:
         try:
             await client.download(url, **kwargs)
 
