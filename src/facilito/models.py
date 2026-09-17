@@ -35,6 +35,12 @@ class Video(BaseModel):
     resources: list[Resource] | None = None
 
 
+class UnitOutcome(BaseModel):
+    success: bool
+    error: str | None = None
+    provider: str = "hls"
+
+
 class Lecture(BaseModel):
     id: int | None = None
     resources: list[Resource] | None = None
