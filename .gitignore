@@ -2,6 +2,7 @@
 *.txt
 *.json
 !config.example.json
+.kilo/
 *.mp4*
 *.mkv
 *.zip
