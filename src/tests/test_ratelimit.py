@@ -44,6 +44,7 @@ from facilito.ratelimit import (
     ThrottleStats,
     classify_playwright_response,
     classify_vsd_error,
+    clean_process_output,
     parse_retry_after,
     redact_url,
     run_with_retry,
@@ -1917,3 +1918,53 @@ def test_cli_login_forces_visible(monkeypatch):
 
     assert result.exit_code == 0
     assert captured["window"] == "visible"
+
+
+def test_clean_process_output_strips_ansi_and_progress():
+    text = (
+        "\x1b[32mProcessing [ und] ?\x1b[0m "
+        "━━━━━━ 0% • 0/212 • 00:00 > inf • ? SEG/s\n"
+        "error: cannot fetch segment\n"
+    )
+
+    cleaned = clean_process_output(text)
+
+    assert "\x1b" not in cleaned
+    assert "━" not in cleaned
+    assert "SEG/s" not in cleaned
+    assert "error: cannot fetch segment" in cleaned
+
+
+def test_clean_process_output_handles_carriage_returns():
+    text = "line1\rprogress ━ 50% SEG/s\rerror: boom"
+
+    assert clean_process_output(text) == "line1\nerror: boom"
+
+
+def test_clean_process_output_empty():
+    assert clean_process_output(None) == ""
+    assert clean_process_output("") == ""
+
+
+def test_download_video_reason_keeps_error_not_progress(monkeypatch, tmp_path):
+    path = tmp_path / "a.mp4"
+    stderr = (
+        "Processing [ und] ━━━━ 0% • 0/212 • 00:00 > inf • ? SEG/s\n"
+        "error: connection reset by peer\n"
+    )
+    _patch_vsd(monkeypatch, tmp_path, [(1, stderr)], path)
+
+    settings = RateLimitSettings(max_retries=0)
+
+    with pytest.raises(RetryExhaustedError) as excinfo:
+        asyncio.run(
+            video_downloader.download_video.__wrapped__(
+                "https://x/hls/a.m3u8",
+                path,
+                settings=settings,
+                stats=ThrottleStats(),
+            )
+        )
+
+    assert "connection reset by peer" in str(excinfo.value)
+    assert "SEG/s" not in str(excinfo.value)

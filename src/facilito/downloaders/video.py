@@ -150,6 +150,7 @@ async def download_video(
         RetrySignal,
         ThrottleStats,
         classify_vsd_error,
+        clean_process_output,
         parse_retry_after,
         redact_url,
         run_with_retry,
@@ -199,6 +200,7 @@ async def download_video(
     # The CDN enforces referer-based hotlink protection: without this header the
     # playlist requests return 403 and vsd reports "no playlists were found".
     command += ["--header", "Referer", f"{BASE_URL}/"]
+    command += ["--color", "never"]
 
     policy = RetryPolicy.from_settings(settings)
 
@@ -210,9 +212,11 @@ async def download_video(
     async def save():
         result = await asyncio.to_thread(run_vsd)
 
+        cleaned = clean_process_output(result.stderr)
+
         detection = classify_vsd_error(
             result.returncode,
-            result.stderr,
+            cleaned,
             block_detection_enabled=settings.block_detection_enabled,
         )
 
@@ -224,15 +228,18 @@ async def download_video(
         if path.exists():
             path.unlink(missing_ok=True)
 
+        if cleaned:
+            logger.debug(f"vsd output:\n{cleaned}")
+
         retry_after = None
 
-        if result.stderr:
-            match = re.search(r"retry-after[:\s=]+(\S+)", result.stderr, re.IGNORECASE)
+        if cleaned:
+            match = re.search(r"retry-after[:\s=]+(\S+)", cleaned, re.IGNORECASE)
 
             if match:
                 retry_after = parse_retry_after(match.group(1))
 
-        reason = " ".join((result.stderr or "").split())[:200]
+        reason = cleaned[-500:]
         reason = reason or f"vsd exited with {result.returncode}"
 
         raise RetrySignal(detection, reason, retry_after=retry_after)

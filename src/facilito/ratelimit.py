@@ -300,6 +300,24 @@ _YOUTUBE_TRANSIENT_PATTERNS = (
     r"unable to download",
 )
 
+_ANSI_PATTERN = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+_PROGRESS_MARKERS = ("━", "SEG/s", "•", "> inf", "% •")
+
+
+def clean_process_output(text: str | None) -> str:
+    """Strip ANSI codes and progress-bar lines from process output."""
+    if not text:
+        return ""
+
+    text = _ANSI_PATTERN.sub("", text).replace("\r", "\n")
+    lines = [line.strip() for line in text.splitlines()]
+    lines = [
+        line
+        for line in lines
+        if line and not any(marker in line for marker in _PROGRESS_MARKERS)
+    ]
+    return "\n".join(lines)
+
 
 def classify_youtube_error(message: str | None) -> Detection:
     """
