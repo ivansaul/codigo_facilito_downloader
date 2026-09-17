@@ -14,7 +14,7 @@ from ..ratelimit import (
     redact_url,
     throttled_goto,
 )
-from ..utils import is_video
+from ..utils import acquire_page, is_video
 
 M3U8_PATTERN = r"\/hls\/.*?\.m3u8"
 PLAYLIST_URL_PATTERN = r"https?://[^\"'\s<>]+?\.m3u8"
@@ -122,20 +122,22 @@ async def fetch_video(
     if not is_video(url):
         raise VideoError()
 
+    request_handler = None
+
     try:
-        page = await context.new_page()
+        page = await acquire_page(context)
 
         # The player requests the playlist (possibly a signed url) while loading,
         # so listen before navigating to avoid missing an early request.
         playlist_urls: list[str] = []
         playlist_found = asyncio.Event()
 
-        def on_request(request):
+        def request_handler(request):
             if ".m3u8" in request.url:
                 playlist_urls.append(request.url)
                 playlist_found.set()
 
-        page.on("request", on_request)
+        page.on("request", request_handler)
 
         await throttled_goto(
             page,
@@ -209,6 +211,10 @@ async def fetch_video(
         raise VideoError()
 
     finally:
-        await page.close()
+        if request_handler is not None:
+            try:
+                page.remove_listener("request", request_handler)
+            except Exception:
+                pass
 
     return Video(url=url, provider=provider)

@@ -7,7 +7,7 @@ from ..errors import AbortError, CourseError, UnitError
 from ..helpers import slugify
 from ..models import Bootcamp, Module, Unit
 from ..ratelimit import RateLimitSettings, ThrottleStats, throttled_goto
-from ..utils import get_unit_type
+from ..utils import acquire_page, get_unit_type
 
 
 async def _fetch_bootcamp_modules(
@@ -112,12 +112,9 @@ async def _fetch_bootcamp_modules(
                 # The URLs like /cursos/bootcamp-...?play=true redirect
                 # to /videos/...
                 # We'll detect the type after getting the final URL
-                temp_page = None
                 try:
-                    # Open page and wait for navigation to complete
-                    # We only need domcontentloaded, not networkidle,
-                    # to get video metadata
-                    temp_page = await page.context.new_page()
+                    # Reuse one probe page so the window is not reopened per unit
+                    temp_page = await acquire_page(page.context, slot="probe")
                     await throttled_goto(
                         temp_page,
                         full_url,
@@ -144,9 +141,6 @@ async def _fetch_bootcamp_modules(
                 except Exception:
                     # If redirect fails, skip this unit
                     continue
-                finally:
-                    if temp_page is not None:
-                        await temp_page.close()
 
             if units:  # Only add module if it has valid units
                 modules.append(
@@ -188,7 +182,7 @@ async def fetch_bootcamp(
     NAME_SELECTOR = ".f-course-presentation h1, .cover-with-image h1, h1.h1"
 
     try:
-        page = await context.new_page()
+        page = await acquire_page(context)
         await throttled_goto(
             page,
             url,
@@ -218,9 +212,6 @@ async def fetch_bootcamp(
         raise
     except Exception as e:
         raise CourseError(f"Error fetching bootcamp: {str(e)}")
-
-    finally:
-        await page.close()
 
     return Bootcamp(
         name=name,

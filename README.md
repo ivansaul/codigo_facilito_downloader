@@ -371,6 +371,8 @@ Modo de ventana (`--window`, o `FACILITO_WINDOW`):
 
 `facilito login` siempre abre una ventana visible para que puedas autenticarte.
 
+Durante toda la ejecución se reutiliza **una única pestaña** en esa ventana (no se abre/cierra una por unidad), así que la ventana como mucho aparece una vez y puedes ignorarla.
+
 ```console
 facilito download URL --window visible
 FACILITO_WINDOW=visible facilito download URL

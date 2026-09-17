@@ -7,7 +7,7 @@ from ..errors import AbortError, CourseError, UnitError
 from ..helpers import slugify
 from ..models import Chapter, Course, Unit
 from ..ratelimit import RateLimitSettings, ThrottleStats, throttled_goto
-from ..utils import get_unit_type
+from ..utils import acquire_page, get_unit_type
 
 
 async def _fetch_course_chapters(page: Page) -> list[Chapter]:
@@ -82,9 +82,6 @@ async def _fetch_course_chapters(page: Page) -> list[Chapter]:
     except Exception:
         raise UnitError()
 
-    finally:
-        await page.close()
-
     return chapters
 
 
@@ -97,7 +94,7 @@ async def fetch_course(
     NAME_SELECTOR = ".f-course-presentation h1, .cover-with-image h1"
 
     try:
-        page = await context.new_page()
+        page = await acquire_page(context)
         await throttled_goto(
             page,
             url,
@@ -116,9 +113,6 @@ async def fetch_course(
         raise
     except Exception:
         raise CourseError()
-
-    finally:
-        await page.close()
 
     return Course(
         name=name,

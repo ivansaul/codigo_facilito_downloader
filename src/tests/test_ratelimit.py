@@ -975,18 +975,32 @@ def test_save_page_uses_throttled_goto(monkeypatch, tmp_path):
     monkeypatch.setattr(utils, "progressive_scroll", fake_scroll)
 
     page = FakeContextPage()
+    context = FakeContext(page)
     path = tmp_path / "source.mhtml"
     settings = RateLimitSettings(request_delay=1.0)
 
-    asyncio.run(
-        utils.save_page(
-            FakeContext(page), "https://x/cursos/a", path, settings=settings
-        )
-    )
+    asyncio.run(utils.save_page(context, "https://x/cursos/a", path, settings=settings))
 
     assert calls["url"] == "https://x/cursos/a"
     assert calls["settings"] is settings
     assert path.read_text(encoding="utf-8") == "<html></html>"
+    assert page.closed is False
+
+    asyncio.run(utils.close_pages(context))
+    assert page.closed is True
+
+
+def test_acquire_page_reuses_the_same_page():
+    page = FakeContextPage()
+    context = FakeContext(page)
+
+    first = asyncio.run(utils.acquire_page(context))
+    second = asyncio.run(utils.acquire_page(context))
+
+    assert first is page
+    assert second is page
+
+    asyncio.run(utils.close_pages(context))
     assert page.closed is True
 
 

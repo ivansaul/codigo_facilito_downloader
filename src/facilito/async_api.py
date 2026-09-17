@@ -19,6 +19,7 @@ from .helpers import read_json
 from .logger import logger
 from .ratelimit import RateLimitSettings, ThrottleStats
 from .utils import (
+    close_pages,
     load_state,
     login_required,
     normalize_cookies,
@@ -92,6 +93,7 @@ class AsyncFacilito:
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
+        await close_pages(self._context)
         await self._context.close()
         await self._browser.close()
         await self._playwright.stop()

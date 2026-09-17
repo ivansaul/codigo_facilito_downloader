@@ -4,7 +4,7 @@ from ..errors import AbortError, UnitError
 from ..helpers import slugify
 from ..models import TypeUnit, Unit
 from ..ratelimit import RateLimitSettings, ThrottleStats, throttled_goto
-from ..utils import get_unit_type
+from ..utils import acquire_page, get_unit_type
 
 
 async def fetch_unit(
@@ -30,7 +30,7 @@ async def fetch_unit(
         raise UnitError()
 
     try:
-        page = await context.new_page()
+        page = await acquire_page(context)
         await throttled_goto(
             page,
             url,
@@ -49,9 +49,6 @@ async def fetch_unit(
         raise
     except Exception:
         raise UnitError()
-
-    finally:
-        await page.close()
 
     return Unit(
         type=type,
