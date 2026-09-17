@@ -1,8 +1,11 @@
 import asyncio
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 
-from facilito import state
+from facilito import async_api, downloaders, state
+from facilito.async_api import AsyncFacilito
 from facilito.downloaders import bootcamp as bootcamp_downloader
 from facilito.downloaders import course as course_downloader
 from facilito.downloaders import unit as unit_downloader
@@ -422,3 +425,129 @@ def test_download_bootcamp_skips_ok_units(monkeypatch, tmp_path):
     )
 
     assert calls == []
+
+
+def _client():
+    client = AsyncFacilito()
+    client.authenticated = True
+    client._context = object()
+    return client
+
+
+def test_async_download_skips_completed(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
+
+    url = "https://x/cursos/c"
+    chapter_dir = tmp_path / "c" / "01_ch"
+    chapter_dir.mkdir(parents=True)
+    output = chapter_dir / "01_v.mp4"
+    output.write_text("v")
+
+    unit = Unit(type=TypeUnit.VIDEO, name="v", slug="v", url="https://x/videos/v")
+    run = RunState(url=url, kind="course", slug="c")
+    run.record(output.as_posix(), unit, UnitOutcome(success=True))
+    save_state(run)
+
+    client = _client()
+    called = {"fetch": False}
+
+    async def fake_fetch_course(*args, **kwargs):
+        called["fetch"] = True
+        return SimpleNamespace(chapters=[], slug="c")
+
+    monkeypatch.setattr(client, "fetch_course", fake_fetch_course)
+    mock_logger = MagicMock()
+    monkeypatch.setattr(async_api, "logger", mock_logger)
+
+    asyncio.run(client.download(url))
+
+    assert called["fetch"] is False
+    assert any(
+        "already completed" in str(call) for call in mock_logger.info.call_args_list
+    )
+
+
+def test_async_download_retries_failures_only(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
+
+    url = "https://x/cursos/c"
+    unit = Unit(type=TypeUnit.VIDEO, name="v", slug="v", url="https://x/videos/v")
+    run = RunState(url=url, kind="course", slug="c")
+    run.record(
+        (tmp_path / "c" / "01_ch" / "01_v.mp4").as_posix(),
+        unit,
+        UnitOutcome(success=False, error="boom"),
+    )
+    save_state(run)
+
+    client = _client()
+
+    async def no_traversal(*args, **kwargs):
+        raise AssertionError("retry-failed must not traverse the course")
+
+    retried = []
+
+    async def fake_download_unit(context, unit, path, **kwargs):
+        retried.append(path.as_posix())
+        return UnitOutcome(success=True)
+
+    monkeypatch.setattr(client, "fetch_course", no_traversal)
+    monkeypatch.setattr(downloaders, "download_unit", fake_download_unit)
+
+    asyncio.run(client.download(url, retry_failed=True))
+
+    assert retried == [(tmp_path / "c" / "01_ch" / "01_v.mp4").as_posix()]
+
+    loaded = load_state("c")
+    assert loaded is not None
+    assert loaded.failures() == []
+
+
+def test_async_download_status_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
+
+    url = "https://x/cursos/c"
+    unit = Unit(type=TypeUnit.VIDEO, name="v", slug="v", url="https://x/videos/v")
+    run = RunState(url=url, kind="course", slug="c")
+    run.record(
+        (tmp_path / "c" / "01_ch" / "01_v.mp4").as_posix(),
+        unit,
+        UnitOutcome(success=False, error="boom"),
+    )
+    save_state(run)
+
+    client = _client()
+    mock_logger = MagicMock()
+    monkeypatch.setattr(async_api, "logger", mock_logger)
+
+    asyncio.run(client.download(url, status_only=True))
+
+    text = " ".join(str(call) for call in mock_logger.info.call_args_list)
+    assert "pending failures" in text
+    assert "boom" in text
+
+
+def test_async_download_status_without_state(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
+
+    client = _client()
+    mock_logger = MagicMock()
+    monkeypatch.setattr(async_api, "logger", mock_logger)
+
+    asyncio.run(client.download("https://x/cursos/c", status_only=True))
+
+    text = " ".join(str(call) for call in mock_logger.info.call_args_list)
+    assert "No saved state" in text
+
+
+def test_async_download_retry_failed_without_failures(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
+
+    client = _client()
+    mock_logger = MagicMock()
+    monkeypatch.setattr(async_api, "logger", mock_logger)
+
+    asyncio.run(client.download("https://x/cursos/c", retry_failed=True))
+
+    text = " ".join(str(call) for call in mock_logger.info.call_args_list)
+    assert "No pending failures" in text

@@ -12,7 +12,7 @@ import typer
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
-from facilito import async_api, cli, config, constants, downloaders, utils
+from facilito import async_api, cli, config, constants, downloaders, state, utils
 from facilito.async_api import AsyncFacilito
 from facilito.collectors import bootcamp, course, unit, video
 from facilito.downloaders import bootcamp as bootcamp_downloader
@@ -1062,7 +1062,8 @@ def test_collectors_reraise_abort(monkeypatch, module, func_name, url):
         asyncio.run(func(CollectorFakeContext(), url))
 
 
-def test_async_download_threads_settings(monkeypatch):
+def test_async_download_threads_settings(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
     client = AsyncFacilito()
     client.authenticated = True
     client._context = object()
@@ -1073,7 +1074,7 @@ def test_async_download_threads_settings(monkeypatch):
     async def fake_fetch_course(url, settings=None, stats=None):
         captured["settings"] = settings
         captured["stats"] = stats
-        return SimpleNamespace(chapters=[])
+        return SimpleNamespace(chapters=[], slug="a")
 
     async def fake_download_course(context, course, **kwargs):
         captured["kwargs"] = kwargs
@@ -1089,7 +1090,8 @@ def test_async_download_threads_settings(monkeypatch):
     assert captured["kwargs"]["stats"] is captured["stats"]
 
 
-def test_async_download_logs_summary_when_events(monkeypatch):
+def test_async_download_logs_summary_when_events(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
     client = AsyncFacilito()
     client.authenticated = True
     client._context = object()
@@ -1099,7 +1101,7 @@ def test_async_download_logs_summary_when_events(monkeypatch):
 
     async def fake_fetch_course(url, settings=None, stats=None):
         stats.retries += 1
-        return SimpleNamespace(chapters=[])
+        return SimpleNamespace(chapters=[], slug="a")
 
     async def fake_download_course(context, course, **kwargs):
         return None
@@ -1112,7 +1114,8 @@ def test_async_download_logs_summary_when_events(monkeypatch):
     assert mock_logger.info.called
 
 
-def test_async_download_no_summary_without_events(monkeypatch):
+def test_async_download_no_summary_without_events(monkeypatch, tmp_path):
+    monkeypatch.setattr(state, "APP_DIR", tmp_path)
     client = AsyncFacilito()
     client.authenticated = True
     client._context = object()
@@ -1121,7 +1124,7 @@ def test_async_download_no_summary_without_events(monkeypatch):
     monkeypatch.setattr(async_api, "logger", mock_logger)
 
     async def fake_fetch_course(url, settings=None, stats=None):
-        return SimpleNamespace(chapters=[])
+        return SimpleNamespace(chapters=[], slug="a")
 
     async def fake_download_course(context, course, **kwargs):
         return None
