@@ -215,6 +215,20 @@ def download(
             show_default="offscreen",
         ),
     ] = None,
+    status_only: Annotated[
+        bool,
+        typer.Option(
+            "--status",
+            help=("Show saved progress and pending failures for the URL, then exit."),
+        ),
+    ] = False,
+    retry_failed: Annotated[
+        bool,
+        typer.Option(
+            "--retry-failed",
+            help="Retry only the recorded failures, without traversing the course.",
+        ),
+    ] = False,
 ):
     """
     Download a bootcamp | course | video | lecture from the given URL.
@@ -259,6 +273,9 @@ def download(
             f"Invalid window '{window}'. Choose one of: {', '.join(WINDOW_CHOICES)}."
         )
 
+    if retry_failed and override:
+        raise typer.BadParameter("--retry-failed cannot be combined with --override.")
+
     asyncio.run(
         _download(
             url,
@@ -268,6 +285,8 @@ def download(
             settings=settings,
             browser=browser,
             window=window,
+            status_only=status_only,
+            retry_failed=retry_failed,
         )
     )
 

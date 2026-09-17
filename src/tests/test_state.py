@@ -3,8 +3,9 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from typer.testing import CliRunner
 
-from facilito import async_api, downloaders, state
+from facilito import async_api, cli, config, downloaders, state
 from facilito.async_api import AsyncFacilito
 from facilito.downloaders import bootcamp as bootcamp_downloader
 from facilito.downloaders import course as course_downloader
@@ -551,3 +552,44 @@ def test_async_download_retry_failed_without_failures(monkeypatch, tmp_path):
 
     text = " ".join(str(call) for call in mock_logger.info.call_args_list)
     assert "No pending failures" in text
+
+
+runner = CliRunner()
+
+
+def test_cli_download_forwards_state_flags(monkeypatch, tmp_path):
+    captured = {}
+
+    async def fake_download(url, **kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(cli, "_download", fake_download)
+    monkeypatch.setattr(config.constants, "CONFIG_FILE", tmp_path / "missing.json")
+
+    result = runner.invoke(
+        cli.app,
+        ["download", "https://x/cursos/c", "--status", "--retry-failed"],
+    )
+
+    assert result.exit_code == 0
+    assert captured["status_only"] is True
+    assert captured["retry_failed"] is True
+
+
+def test_cli_download_rejects_retry_failed_with_override(monkeypatch, tmp_path):
+    monkeypatch.setattr(config.constants, "CONFIG_FILE", tmp_path / "missing.json")
+
+    result = runner.invoke(
+        cli.app,
+        ["download", "https://x/cursos/c", "--retry-failed", "--override"],
+    )
+
+    assert result.exit_code == 2
+
+
+def test_cli_download_help_lists_state_flags():
+    result = runner.invoke(cli.app, ["download", "--help"], env={"COLUMNS": "200"})
+
+    assert result.exit_code == 0
+    assert "--status" in result.output
+    assert "--retry-failed" in result.output
