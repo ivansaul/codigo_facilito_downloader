@@ -11,7 +11,7 @@ from ..constants import APP_NAME, BASE_URL
 from ..errors import AbortError
 from ..helpers import download_file, hashify, write_json
 from ..logger import logger
-from ..models import Quality
+from ..models import Quality, UnitOutcome
 
 TMP_DIR_PATH = Path(APP_NAME) / ".tmp"
 BIN_DIR_PATH = Path(APP_NAME) / ".bin"
@@ -128,7 +128,7 @@ async def download_video(
     path: Path,
     quality: Quality = Quality.MAX,
     **kwargs,
-):
+) -> UnitOutcome:
     """
     Download a video from a URL.
 
@@ -166,7 +166,7 @@ async def download_video(
 
     if not override and path.exists():
         logger.info(f"[{path.name}] already exists")
-        return
+        return UnitOutcome(success=True, provider="hls")
 
     TMP_COOKIES_PATH = TMP_DIR_PATH / f"{hashify(url)}.json"
 
@@ -178,7 +178,9 @@ async def download_video(
 
     if not vsd_bin:
         logger.error(f"Error downloading [{path.name}]: vsd binary is not available")
-        return
+        return UnitOutcome(
+            success=False, error="vsd binary is not available", provider="hls"
+        )
 
     command = [
         vsd_bin.as_posix(),
@@ -249,9 +251,12 @@ async def download_video(
         await run_with_retry(save, policy, stats, label=path.name)
     except AbortError:
         raise
-    except Exception:
+    except Exception as error:
         logger.exception(f"Error downloading [{path.name}]")
+        return UnitOutcome(success=False, error=str(error), provider="hls")
 
     finally:
         if TMP_COOKIES_PATH.exists():
             TMP_COOKIES_PATH.unlink()
+
+    return UnitOutcome(success=True, provider="hls")

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from ..errors import AbortError
 from ..logger import logger
-from ..models import Quality
+from ..models import Quality, UnitOutcome
 from ..ratelimit import (
     RateLimitSettings,
     RetryPolicy,
@@ -40,7 +40,7 @@ async def download_youtube(
     path: Path,
     quality: Quality = Quality.MAX,
     **kwargs,
-):
+) -> UnitOutcome:
     """
     Download an embedded YouTube video to path.
 
@@ -57,7 +57,7 @@ async def download_youtube(
 
     if not kwargs.get("override", False) and path.exists():
         logger.info(f"[{path.name}] already exists")
-        return
+        return UnitOutcome(success=True, provider="youtube")
 
     try:
         import yt_dlp
@@ -66,7 +66,9 @@ async def download_youtube(
             "yt-dlp is not installed, cannot download embedded videos; "
             "install it with: pip install yt-dlp"
         )
-        return
+        return UnitOutcome(
+            success=False, error="yt-dlp is not installed", provider="youtube"
+        )
 
     policy = RetryPolicy.from_settings(settings)
 
@@ -105,5 +107,8 @@ async def download_youtube(
         await run_with_retry(save, policy, stats, label=path.name)
     except AbortError:
         raise
-    except Exception:
+    except Exception as error:
         logger.exception(f"Error downloading [{path.name}]")
+        return UnitOutcome(success=False, error=str(error), provider="youtube")
+
+    return UnitOutcome(success=True, provider="youtube")
