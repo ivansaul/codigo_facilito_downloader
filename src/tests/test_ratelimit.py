@@ -26,6 +26,7 @@ from facilito.errors import (
     RateLimitError,
     RetryExhaustedError,
 )
+from facilito.helpers import hashify
 from facilito.models import (
     Bootcamp,
     Chapter,
@@ -1194,15 +1195,25 @@ def test_download_unit_forwards_settings_to_save_page(monkeypatch):
     assert captured["stats"] is stats
 
 
-def _patch_vsd(monkeypatch, tmp_path, results, path):
+def _patch_vsd(monkeypatch, tmp_path, results, path, url="https://x/hls/a.m3u8"):
     calls = {"count": 0}
     exists_seen = []
 
     def fake_run(command, **kwargs):
+        if command and command[0] == "ffmpeg":
+            path.write_text("mp4")
+            return SimpleNamespace(returncode=0, stderr="")
+
         exists_seen.append(path.exists())
         index = min(calls["count"], len(results) - 1)
         returncode, stderr = results[index]
         calls["count"] += 1
+
+        if returncode == 0:
+            stream_dir = tmp_path / hashify(url)
+            stream_dir.mkdir(parents=True, exist_ok=True)
+            (stream_dir / "vsd-video-abc.ts").write_text("ts")
+
         return SimpleNamespace(returncode=returncode, stderr=stderr)
 
     async def fake_download_vsd():
@@ -1219,7 +1230,7 @@ def test_download_video_success(monkeypatch, tmp_path):
     path = tmp_path / "a.mp4"
     calls, _ = _patch_vsd(monkeypatch, tmp_path, [(0, "")], path)
 
-    asyncio.run(
+    outcome = asyncio.run(
         video_downloader.download_video.__wrapped__(
             "https://x/hls/a.m3u8",
             path,
@@ -1229,6 +1240,41 @@ def test_download_video_success(monkeypatch, tmp_path):
     )
 
     assert calls["count"] == 1
+    assert outcome.success is True
+    assert path.read_text() == "mp4"
+
+
+def test_download_video_mux_failure_returns_failure(monkeypatch, tmp_path):
+    path = tmp_path / "a.mp4"
+
+    def fake_run(command, **kwargs):
+        if command and command[0] == "ffmpeg":
+            return SimpleNamespace(returncode=234, stderr="Invalid argument")
+
+        stream_dir = tmp_path / hashify("https://x/hls/a.m3u8")
+        stream_dir.mkdir(parents=True, exist_ok=True)
+        (stream_dir / "vsd-video-abc.ts").write_text("ts")
+
+        return SimpleNamespace(returncode=0, stderr="")
+
+    async def fake_download_vsd():
+        return tmp_path / "vsd"
+
+    monkeypatch.setattr(video_downloader, "TMP_DIR_PATH", tmp_path)
+    monkeypatch.setattr(video_downloader, "_download_vsd", fake_download_vsd)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    outcome = asyncio.run(
+        video_downloader.download_video.__wrapped__(
+            "https://x/hls/a.m3u8",
+            path,
+            settings=RateLimitSettings(),
+            stats=ThrottleStats(),
+        )
+    )
+
+    assert outcome.success is False
+    assert "ffmpeg" in outcome.error
 
 
 def test_download_video_retries_transient_and_cleans_partial(monkeypatch, tmp_path):
@@ -1236,13 +1282,25 @@ def test_download_video_retries_transient_and_cleans_partial(monkeypatch, tmp_pa
     calls = {"count": 0}
     exists_seen = []
 
+    stream_dir = tmp_path / hashify("https://x/hls/a.m3u8")
+    stream_dir.mkdir(parents=True, exist_ok=True)
+    (stream_dir / "vsd-video-abc.ts").write_text("ts")
+
     def fake_run(command, **kwargs):
+        if command and command[0] == "ffmpeg":
+            path.write_text("mp4")
+            return SimpleNamespace(returncode=0, stderr="")
+
         exists_seen.append(path.exists())
         calls["count"] += 1
 
         if calls["count"] == 1:
             path.write_text("partial")
             return SimpleNamespace(returncode=1, stderr="connection reset")
+
+        stream_dir = tmp_path / hashify("https://x/hls/a.m3u8")
+        stream_dir.mkdir(parents=True, exist_ok=True)
+        (stream_dir / "vsd-video-abc.ts").write_text("ts")
 
         return SimpleNamespace(returncode=0, stderr="")
 
@@ -1257,7 +1315,7 @@ def test_download_video_retries_transient_and_cleans_partial(monkeypatch, tmp_pa
         max_retries=2, retry_base_delay=0.1, retry_max_delay=0.1
     )
 
-    asyncio.run(
+    outcome = asyncio.run(
         video_downloader.download_video.__wrapped__(
             "https://x/hls/a.m3u8", path, settings=settings, stats=ThrottleStats()
         )
@@ -1265,6 +1323,7 @@ def test_download_video_retries_transient_and_cleans_partial(monkeypatch, tmp_pa
 
     assert calls["count"] == 2
     assert exists_seen == [False, False]
+    assert outcome.success is True
 
 
 def test_download_video_exhaustion_aborts(monkeypatch, tmp_path):

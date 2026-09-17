@@ -182,14 +182,18 @@ async def download_video(
             success=False, error="vsd binary is not available", provider="hls"
         )
 
+    # vsd downloads the streams here; we mux them ourselves because vsd 0.4.1
+    # builds an invalid ffmpeg command (no -i) for single-stream playlists.
+    STREAM_DIR = TMP_DIR_PATH / hashify(url)
+    shutil.rmtree(STREAM_DIR, ignore_errors=True)
+    STREAM_DIR.mkdir(parents=True, exist_ok=True)
+
     command = [
         vsd_bin.as_posix(),
         "save",
         url,
         "--directory",
-        TMP_DIR_PATH.as_posix(),
-        "--output",
-        path.as_posix(),
+        STREAM_DIR.as_posix(),
         "--quality",
         quality.value,
         "--threads",
@@ -211,6 +215,36 @@ async def download_video(
     def run_vsd():
         return subprocess.run(command, stderr=subprocess.PIPE, text=True)
 
+    def mux_streams():
+        streams = sorted(
+            (stream for stream in STREAM_DIR.iterdir() if stream.is_file()),
+            key=lambda stream: (
+                0 if "video" in stream.name else 1 if "audio" in stream.name else 2,
+                stream.name,
+            ),
+        )
+
+        if not streams:
+            raise RuntimeError("vsd did not download any stream")
+
+        command = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y"]
+
+        for stream in streams:
+            command += ["-i", stream.as_posix()]
+
+        for index in range(len(streams)):
+            command += ["-map", str(index)]
+
+        command += ["-c", "copy", path.as_posix()]
+
+        result = subprocess.run(command, stderr=subprocess.PIPE, text=True)
+
+        if result.returncode != 0:
+            output = clean_process_output(result.stderr)
+            raise RuntimeError(
+                f"ffmpeg exited with code {result.returncode}: {output[-300:]}"
+            )
+
     async def save():
         result = await asyncio.to_thread(run_vsd)
 
@@ -223,6 +257,7 @@ async def download_video(
         )
 
         if detection is None:
+            await asyncio.to_thread(mux_streams)
             return
 
         # A failed attempt can leave a partial file behind; remove it so it is
@@ -253,10 +288,16 @@ async def download_video(
         raise
     except Exception as error:
         logger.exception(f"Error downloading [{path.name}]")
+
+        if path.exists():
+            path.unlink(missing_ok=True)
+
         return UnitOutcome(success=False, error=str(error), provider="hls")
 
     finally:
         if TMP_COOKIES_PATH.exists():
             TMP_COOKIES_PATH.unlink()
+
+        shutil.rmtree(STREAM_DIR, ignore_errors=True)
 
     return UnitOutcome(success=True, provider="hls")
