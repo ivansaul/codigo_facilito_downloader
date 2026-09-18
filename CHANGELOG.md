@@ -1,5 +1,585 @@
 # CHANGELOG
 
+## v0.6.0 (2026-09-18)
+
+### Chore
+
+* chore: ignore .kilo/
+
+.kilo/ holds local Kilo specs and worktree metadata that should not be
+tracked.
+
+- .gitignore: Added .kilo/ ([`a4ac5bb`](https://github.com/ivansaul/codigo_facilito_downloader/commit/a4ac5bbd5b123d155a3af61e3652a618de9c5a39))
+
+* chore(video): log the resolved playlist URL
+
+vsd failures said &#34;no playlists were found in website source.&#34; without
+showing which URL was used, making it impossible to tell a captured
+signed playlist from the broken static fallback.
+
+- src/facilito/collectors/video.py: Log the redacted playlist URL and
+  whether it came from the network, page source or the static fallback
+- src/facilito/downloaders/video.py: Log the redacted URL passed to vsd
+- src/tests/test_ratelimit.py: Added a test asserting the static
+  fallback is used and warned about when no playlist is captured ([`698eca5`](https://github.com/ivansaul/codigo_facilito_downloader/commit/698eca5847a08066c74d4b3844b6587cd7034a4b))
+
+* chore(ci): remove ffmpeg and playwright install steps
+
+Remove FFmpeg and Playwright browser installation as they are no longer
+required. ([`133cff7`](https://github.com/ivansaul/codigo_facilito_downloader/commit/133cff7365079953427205a599e14f34e3916678))
+
+### Documentation
+
+* docs(state): document resume and failures
+
+Documented the per-course manifest and the resume/failure flags so
+users know a completed course is skipped and failures are retried.
+
+- README.md: Added a Reanudar y fallos section with manifest location,
+  completed skip, automatic failure retry, --retry-failed, --status and
+  --override interplay ([`c4b113f`](https://github.com/ivansaul/codigo_facilito_downloader/commit/c4b113f3de632c6702b69c39f1d0c14c7b939941))
+
+* docs(youtube): document embedded video support
+
+Documented automatic detection and the yt-dlp download path so users
+know embedded lessons are handled and how quality maps.
+
+- README.md: Added a YouTube subsection covering detection, the yt-dlp
+  dependency, quality mapping, limits (no playlists/subtitles) and
+  clear failures for private/removed videos ([`87a47cb`](https://github.com/ivansaul/codigo_facilito_downloader/commit/87a47cb7426537cd22e3b68d8e79294cb25d746f))
+
+* docs(ratelimit): add recommended example config file
+
+Added a ready-to-use example config so users can opt into the
+recommended pacing without hand-writing JSON, and documented how to
+copy or point to it.
+
+- config.example.json: Added the recommended rate-limiting settings
+  (0.3/0.3/1.5 pacing, retries and block detection enabled)
+- .gitignore: Un-ignored config.example.json so the example ships
+- README.md: Documented copying the example to Facilito/config.json or
+  passing it via --config ([`9ae8c8a`](https://github.com/ivansaul/codigo_facilito_downloader/commit/9ae8c8adb5c6d126122081a386b940e415f65481))
+
+* docs(ratelimit): add recommended command example
+
+Added a recommended, efficient rate-limiting command with a rationale
+table and a conservative fallback for when 429/403 responses appear,
+and aligned the sample config with the recommended values.
+
+- README.md: Added the Configuración recomendada subsection with a
+  ready-to-use command, a values table, a throttled fallback and an
+  opt-out example; aligned Facilito/config.json sample values ([`962de87`](https://github.com/ivansaul/codigo_facilito_downloader/commit/962de87c60cfae06969bfd3350b937f76f93ead1))
+
+* docs(ratelimit): link options from download usage
+
+The download usage list only listed --quality, --override and --threads,
+so the new rate-limiting options were easy to miss even though the Rate
+limiting section documented them.
+
+- README.md: Added a bullet listing the rate-limiting options and
+  linking to the Rate limiting section from the download usage options ([`fbf5379`](https://github.com/ivansaul/codigo_facilito_downloader/commit/fbf5379ca67ccc329ea9ccbe520efb985baa9f6e))
+
+* docs(ratelimit): document options and config file
+
+Documented the new rate-limiting surface and the config file so users
+can opt into pacing and understand the abort policy.
+
+- README.md: Added a Rate limiting section with the ten new options and
+  their defaults, the Facilito/config.json path and format, CLI &gt; file &gt;
+  default precedence, FACILITO_CONFIG override, sample config and polite
+  vs opt-out examples; noted the abort-on-exhaustion policy and the
+  --threads caveat
+
+This is a minor, non-breaking version bump (0.5.0 -&gt; 0.6.0). ([`f137713`](https://github.com/ivansaul/codigo_facilito_downloader/commit/f137713ee1686fe92199d02089c61375c50279e3))
+
+### Feature
+
+* feat(state): show the last attempt time in --status
+
+A stored failure reason can be stale after a fix, which made --status
+look like it was still failing. Include the attempt timestamp so it is
+clear the reason is historical.
+
+- src/facilito/async_api.py: --status now prints &#34;(last attempt &lt;time&gt;)&#34;
+  for each pending failure ([`8f76ff7`](https://github.com/ivansaul/codigo_facilito_downloader/commit/8f76ff75626578c4e6ad33052db4befcb5e7a72e))
+
+* feat(state): add status and retry-failed flags
+
+Exposed the resume state on the download command so users can inspect
+progress and retry only failures.
+
+- src/facilito/cli.py: Added --status and --retry-failed, rejected
+  --retry-failed with --override, and forwarded both to the downloader
+- src/tests/test_state.py: Added forwarding, mutual-exclusion and help
+  tests ([`52988bc`](https://github.com/ivansaul/codigo_facilito_downloader/commit/52988bc99f844cfd76d146d7e4c1a380719d3498))
+
+* feat(state): orchestrate resume and retries
+
+The run entry point now loads the manifest and decides between showing
+state, retrying failures only, skipping a completed course, or resuming.
+
+- src/facilito/async_api.py: download accepts status_only/retry_failed,
+  skips a completed course with outputs present, resumes with the state,
+  retries recorded failures without traversal and reports status
+- src/tests/test_state.py: Added completed-skip, retry-only, status and
+  no-failures tests
+- src/tests/test_ratelimit.py: Async tests now provide a course slug and
+  isolate the manifest directory ([`14dd562`](https://github.com/ivansaul/codigo_facilito_downloader/commit/14dd562a00e16cbb8c9d99581e60dc25587c2e1c))
+
+* feat(state): resume and record course progress
+
+Course and bootcamp loops now consult the manifest: units recorded ok
+with an existing file are skipped without fetching their page, and every
+outcome is persisted as the run advances.
+
+- src/facilito/downloaders/course.py, bootcamp.py: Accept the run state,
+  skip ok units, record outcomes and save per unit, and record the
+  failure that caused an AbortError before re-raising
+- src/tests/test_state.py: Added skip, record and abort tests for course
+  and bootcamp ([`48b87cf`](https://github.com/ivansaul/codigo_facilito_downloader/commit/48b87cfbc487c519fe9301fdd8211b505b743088))
+
+* feat(state): return download outcomes
+
+Downloaders now report success or a failure reason so the course loops
+can persist failures and resume.
+
+- src/facilito/downloaders/video.py: download_video returns
+  UnitOutcome for success, skip and non-abort failures; AbortError still
+  propagates
+- src/facilito/downloaders/youtube.py: Same for the yt-dlp path
+- src/facilito/downloaders/unit.py: download_unit returns the outcome
+  (page provider for lectures) and maps a missing ffmpeg
+- src/tests/test_state.py: Added outcome tests for both downloaders and
+  unit dispatch ([`53cbc12`](https://github.com/ivansaul/codigo_facilito_downloader/commit/53cbc12c585989c9a5eaff5933e8d9cb81714f39))
+
+* feat(state): add run manifest
+
+Added the per-course manifest that records unit outcomes so runs can be
+resumed and failures retried without re-walking everything.
+
+- src/facilito/state.py: Added RunState/UnitState, atomic save_state,
+  load_state (corruption tolerant), find_state by normalized URL and
+  state_path
+- src/facilito/constants.py: Added STATE_FILE_NAME and STATE_VERSION
+- src/tests/test_state.py: Added record/queries, roundtrip, corruption
+  and find_state tests ([`1420845`](https://github.com/ivansaul/codigo_facilito_downloader/commit/1420845888b679b9b66e4436a4706506161400b9))
+
+* feat(state): add unit outcome model
+
+Downloaders need to report whether a unit succeeded and why, so the
+resume manifest can record results and failures.
+
+- src/facilito/models.py: Added UnitOutcome(success, error, provider)
+- src/tests/test_state.py: Added default and failure outcome tests ([`30b35be`](https://github.com/ivansaul/codigo_facilito_downloader/commit/30b35be153faa2f538e49705c25cf90374f104c1))
+
+* feat(browser): reuse a single page per run
+
+Opening and closing a page per unit made the browser window reappear and
+steal focus continuously. Reuse one page (and one probe page) for the
+whole run so the window can be ignored once.
+
+- src/facilito/utils.py: Added a weak per-context page registry with
+  acquire_page/close_pages; save_page reuses the shared page
+- src/facilito/collectors/*.py: Use acquire_page for navigation and stop
+  closing the shared page; bootcamp probes reuse a dedicated slot and
+  fetch_video removes its request listener
+- src/facilito/async_api.py: Close shared pages on context exit
+- src/tests/test_ratelimit.py: Updated save_page expectations and added
+  page-reuse coverage
+- README.md: Noted the single-tab behavior ([`6fc555a`](https://github.com/ivansaul/codigo_facilito_downloader/commit/6fc555af43da0640d53056011b4339ccae219a68))
+
+* feat(browser): run downloads offscreen by default
+
+The headful browser popped in front of everything. It is still required
+to pass Cloudflare and to capture the HLS playlist, so keep it headful
+but position it off-screen and minimized, with an explicit way back to a
+visible window.
+
+- src/facilito/async_api.py: Added a window mode (offscreen, visible,
+  headless) honoring FACILITO_WINDOW; offscreen launches Chrome headful
+  with --window-position/-start-minimized
+- src/facilito/constants.py: Added WINDOW_ENV_VAR, WINDOW_CHOICES and
+  OFFSCREEN_ARGS
+- src/facilito/cli.py: Added --window with validation on download and
+  forced a visible window for login
+- src/tests/test_ratelimit.py: Added window resolution, launch args and
+  CLI/login tests
+- README.md: Documented the window modes and defaults ([`0ebaadb`](https://github.com/ivansaul/codigo_facilito_downloader/commit/0ebaadbfbbf65d9d242528e2c74141f94c74d8cc))
+
+* feat(youtube): route embedded lessons to yt-dlp
+
+The unit downloader now dispatches on the video provider so YouTube
+lessons use yt-dlp while HLS keeps using vsd.
+
+- src/facilito/downloaders/unit.py: Route provider == youtube to
+  download_youtube and keep download_video for HLS
+- src/tests/test_youtube.py: Added dispatch tests for both providers
+- src/tests/test_ratelimit.py: Fake video now carries a provider, as
+  download_unit reads it ([`a027d1b`](https://github.com/ivansaul/codigo_facilito_downloader/commit/a027d1bb83acfecb46bcf81fcadefcc32b3eb1df))
+
+* feat(youtube): detect embedded players
+
+When no HLS playlist is found, the collector now looks for a YouTube
+iframe or markup URL and returns a video tagged with the youtube
+provider instead of the dead static fallback.
+
+- src/facilito/collectors/video.py: Added _iframe_sources and
+  _find_youtube_id and set Video.provider; HLS still wins when a
+  playlist is present
+- src/tests/test_youtube.py: Added id priority, no-match, detection and
+  HLS-precedence tests ([`6968f41`](https://github.com/ivansaul/codigo_facilito_downloader/commit/6968f41e54604e9c6831dd3426e8a01848a3d0c6))
+
+* feat(youtube): download embedded videos with yt-dlp
+
+Added the YouTube downloader so embedded lessons produce an mp4 with
+the same quality and skip semantics as HLS videos, reusing the existing
+retry/abort policy.
+
+- src/facilito/downloaders/youtube.py: Added quality_to_format and
+  download_youtube with lazy yt-dlp import, noplaylist, quiet mode,
+  retries=1, partial cleanup and classify_youtube_error
+- pyproject.toml: Added the yt-dlp dependency
+- src/tests/test_youtube.py: Added quality mapping, success, skip,
+  transient retry, fatal, exhaustion and missing-dependency tests ([`7a941c8`](https://github.com/ivansaul/codigo_facilito_downloader/commit/7a941c88a2895e49dd14f89fa5845dfc1adf30d7))
+
+* feat(youtube): classify youtube download errors
+
+The YouTube path must reuse the existing retry/abort policy, so yt-dlp
+messages need the same Detection classification as vsd errors.
+
+- src/facilito/ratelimit.py: Added classify_youtube_error with throttle,
+  auth, fatal and transient tables
+- src/tests/test_youtube.py: Added a classification table incl. unknown
+  and empty messages ([`9274499`](https://github.com/ivansaul/codigo_facilito_downloader/commit/92744993196948630fb67d0952e76536d9aa8ffe))
+
+* feat(youtube): extract youtube video ids
+
+Detection needs to pull the 11-character id from the several URL shapes
+YouTube uses, tolerating extra query parameters.
+
+- src/facilito/helpers.py: Added YOUTUBE_ID_PATTERN and
+  extract_youtube_id covering embed, nocookie, youtu.be and watch URLs
+- src/tests/test_youtube.py: Added variants and invalid-input tests ([`ee41e77`](https://github.com/ivansaul/codigo_facilito_downloader/commit/ee41e771d8c97cf2340e4873727a5a1c420d066f))
+
+* feat(youtube): add video provider field
+
+Embedded YouTube lessons need a different downloader than the HLS path,
+so the model must carry which provider a video uses.
+
+- src/facilito/models.py: Added VideoProvider (hls, youtube) and
+  Video.provider defaulting to hls to keep existing sites valid
+- src/tests/test_youtube.py: Added default and explicit provider tests ([`10a1724`](https://github.com/ivansaul/codigo_facilito_downloader/commit/10a17243a33a98158796586c5fe8aa7a63868974))
+
+* feat(ratelimit): pace consecutive video downloads
+
+Inserted the inter-download delay between consecutive real downloads
+in course and bootcamp runs, leaving skipped units unpaced.
+
+- src/facilito/downloaders/course.py, bootcamp.py: Create one Pacer
+  per run, wait before each non-skipped unit and pass settings/stats to
+  save_page
+- src/tests/test_ratelimit.py: Added course/bootcamp loop tests
+  asserting a skipped video consumes no pacing ([`c1d5808`](https://github.com/ivansaul/codigo_facilito_downloader/commit/c1d580813d346c82e9f0f39e810a00571241e13a))
+
+* feat(ratelimit): retry and classify vsd downloads
+
+Wrapped the vsd subprocess in the retry adapter so video downloads
+classify failures, clean partial output and abort on exhaustion.
+
+- src/facilito/downloaders/video.py: Run vsd via asyncio.to_thread with
+  stderr captured, classify with classify_vsd_error, remove partial
+  output before retrying and re-raise AbortError; _download_vsd and the
+  ffmpeg guard are untouched
+- src/tests/test_ratelimit.py: Added success, transient retry with
+  cleanup, exhaustion, auth and existing-file tests ([`87e5c18`](https://github.com/ivansaul/codigo_facilito_downloader/commit/87e5c184a3defc03002f9c4369a9b46638d6abb7))
+
+* feat(ratelimit): thread settings through downloaders
+
+Connected the resolved settings from the run entry point down to the
+collectors and downloaders, and emitted a single end-of-run summary.
+
+- src/facilito/async_api.py: download builds a run-level ThrottleStats,
+  forwards settings/stats to fetch_* and download_* and logs the
+  summary only when events occurred
+- src/facilito/downloaders/unit.py: forwards settings/stats to
+  fetch_video, download_video and save_page
+- src/tests/test_ratelimit.py: Added forwarding and summary tests ([`7155f71`](https://github.com/ivansaul/codigo_facilito_downloader/commit/7155f71b203639931b56c5837fa9a479cf1a4b82))
+
+* feat(ratelimit): apply pacing and detection to collectors
+
+Routed every site-facing collector navigation through throttled_goto,
+including the high-frequency bootcamp redirect probes, and let aborts
+propagate instead of being converted to domain errors.
+
+- src/facilito/collectors/unit.py, course.py, video.py, bootcamp.py:
+  Added settings/stats parameters, replaced page.goto with
+  throttled_goto and re-raise AbortError before each broad handler
+- src/tests/test_ratelimit.py: Added parametrized tests asserting
+  collectors re-raise AbortError unchanged ([`98b772d`](https://github.com/ivansaul/codigo_facilito_downloader/commit/98b772d502791b5981b20cec30b6639beff1d349))
+
+* feat(ratelimit): abort propagation and paced page saves
+
+Stopped the swallow boundary from hiding aborts and routed MHTML page
+saves through throttled navigation.
+
+- src/facilito/utils.py: try_except_request re-raises AbortError before
+  its broad handler; save_page navigates via throttled_goto and
+  re-raises AbortError without converting it
+- src/tests/test_ratelimit.py: Added abort propagation, plain-exception
+  swallow and save_page wiring tests ([`8f2c958`](https://github.com/ivansaul/codigo_facilito_downloader/commit/8f2c9587a44749cac92cc0bd3da20641d01b6557))
+
+* feat(ratelimit): add throttled navigation and download pacer
+
+Composed pacing, detection and retry into the two entry points used by
+every call site, and added URL redaction for safe logging.
+
+- src/facilito/ratelimit.py: Added throttled_goto, Pacer, redact_url
+  and a bounded page.content fallback for 401/403 disambiguation
+- src/tests/test_ratelimit.py: Added fake-page tests for pacing,
+  transient retry, Retry-After cap, challenge retry, login failure,
+  exhaustion, unknown 403 and Pacer first-operation rule ([`a866437`](https://github.com/ivansaul/codigo_facilito_downloader/commit/a866437a8f7409ec86ebb2e0fa8e5480d7ec88f4))
+
+* feat(ratelimit): detect 429 and Cloudflare challenges
+
+Added pure, table-testable classifiers so the retry loop can tell
+throttling, transient failures, auth failures and hard blocks apart.
+
+- src/facilito/ratelimit.py: Added classify_playwright_response using
+  status, headers, body and final URL markers, and classify_vsd_error
+  using exit code plus table-driven stderr regexes
+- src/tests/test_ratelimit.py: Added 429/5xx/403-challenge/403-auth,
+  detection-disabled and vsd stderr classification tables ([`20a92cb`](https://github.com/ivansaul/codigo_facilito_downloader/commit/20a92cb9ce77d4f8bcfb2de9e21fc01b310d1bd8))
+
+* feat(ratelimit): add retry/backoff with Retry-After support
+
+Implemented the deterministic, injectable retry engine reused by every
+call site, with full jitter, exponential backoff and Retry-After
+handling.
+
+- src/facilito/ratelimit.py: Added Detection, RetrySignal,
+  ThrottleStats, RetryPolicy, parse_retry_after, sleep_with_jitter and
+  run_with_retry with a configurable Retry-After cap and warning
+- src/tests/test_ratelimit.py: Added seeded wait-sequence, cap,
+  Retry-After table, single-attempt, auth, cancellation and stats tests ([`2bb2de4`](https://github.com/ivansaul/codigo_facilito_downloader/commit/2bb2de496d5aa38699af62e841332e2221d00efe))
+
+* feat(ratelimit): add download CLI options and config resolution
+
+Exposed the rate-limiting surface on the download command and made an
+aborted run exit non-zero with an actionable message.
+
+- src/facilito/cli.py: Added the pacing, retry, detection and --config
+  options as tri-state sentinels, resolved them via
+  config.resolve_settings, and converted AbortError into typer.Exit(1)
+  with an ERROR log
+- src/tests/test_ratelimit.py: Added help, option parsing, invalid
+  value, missing config and abort-exit tests via CliRunner ([`80043f2`](https://github.com/ivansaul/codigo_facilito_downloader/commit/80043f2d595677e95eaf239e2cde4733b60113b1))
+
+* feat(ratelimit): add config loader with CLI precedence
+
+Implemented resolve_settings so rate-limit options resolve with strict
+CLI &gt; config file &gt; default precedence and actionable validation
+errors.
+
+- src/facilito/config.py: Added config path resolution (explicit
+  --config &gt; FACILITO_CONFIG &gt; Facilito/config.json) and settings
+  merging with BadParameter on missing explicit or invalid files
+- src/tests/test_ratelimit.py: Added precedence, env var, unknown key,
+  bounds and missing-file tests ([`871325a`](https://github.com/ivansaul/codigo_facilito_downloader/commit/871325a088defc47457ca047082db1dbce5de8a4))
+
+* feat(ratelimit): add config path constants
+
+Established the single source of truth for the rate-limiting config
+file location and its environment override.
+
+- src/facilito/constants.py: Added APP_DIR, CONFIG_FILE and
+  CONFIG_ENV_VAR without touching existing session/URL constants
+- src/tests/test_ratelimit.py: Added config constant assertions ([`dd182af`](https://github.com/ivansaul/codigo_facilito_downloader/commit/dd182af59f9c4f1ae280d43435029195dd02004d))
+
+* feat(ratelimit): add RateLimitSettings model
+
+Added the validated settings contract that every rate-limiting layer
+will consume, with conservative retry defaults and pacing disabled by
+default to preserve current behavior.
+
+- src/facilito/ratelimit.py: Added RateLimitSettings with field
+  bounds, extra=&#34;forbid&#34;, and a retry_max_delay &gt;= retry_base_delay
+  validator
+- src/tests/test_ratelimit.py: Added default, out-of-range,
+  cross-field and unknown-key tests ([`ac00a23`](https://github.com/ivansaul/codigo_facilito_downloader/commit/ac00a234aa0ca5908e4736301e460a0340e76a49))
+
+* feat(ratelimit): add abort and rate-limit error types
+
+Added the AbortError marker family so later rate-limiting work has a
+single, unambiguous way to bypass the swallow boundary without
+changing LoginError or the existing domain errors.
+
+- src/facilito/errors.py: Added AbortError(BaseError),
+  RateLimitError(AbortError) and RetryExhaustedError(RateLimitError),
+  the latter carrying label, attempts and reason
+- src/tests/test_ratelimit.py: Added hierarchy, LoginError-not-abort
+  and RetryExhaustedError field tests ([`9a73339`](https://github.com/ivansaul/codigo_facilito_downloader/commit/9a73339d0abd784b1d4e8c2db138f9b11e7736a2))
+
+### Fix
+
+* fix(video): mux streams ourselves instead of using vsd --output
+
+vsd 0.4.1 builds an invalid ffmpeg command for single-stream playlists
+(no -i), so those downloads always failed with ffmpeg exit 234
+(-EINVAL). Reproduced locally with a video-only HLS playlist.
+
+- src/facilito/downloaders/video.py: Download streams with vsd into a
+  per-download directory (no --output) and mux them with ffmpeg (video
+  first), cleaning the directory afterwards; partial output is removed on
+  failure
+- src/tests/test_ratelimit.py: Updated vsd fakes for the extra ffmpeg
+  step and added a mux-failure test
+
+Verified end-to-end against local HLS masters: a single-stream media
+playlist now succeeds and a video+audio master still muxes correctly. ([`6854ffd`](https://github.com/ivansaul/codigo_facilito_downloader/commit/6854ffd792137732f3462f674b1b9171d216a2ca))
+
+* fix(state): use keyword args for UnitOutcome in tests
+
+The pydantic model does not accept positional arguments.
+
+- src/tests/test_state.py: Build the failure outcome with keyword arguments ([`3ac3207`](https://github.com/ivansaul/codigo_facilito_downloader/commit/3ac32072e4ace5f376b97a6133d3a758578b7db5))
+
+* fix(video): surface the real vsd error instead of progress noise
+
+vsd wrote its progress bar to stderr, so the reported reason was the
+first 200 characters of the progress bar and the actual error (and its
+classification) was hidden.
+
+- src/facilito/ratelimit.py: Added clean_process_output to strip ANSI
+  codes and progress-bar lines
+- src/facilito/downloaders/video.py: Classify and log the cleaned output,
+  keep the tail of the message as the reason and pass --color never
+- src/tests/test_ratelimit.py: Added cleaning and reason tests ([`ce5376b`](https://github.com/ivansaul/codigo_facilito_downloader/commit/ce5376bdecb0c0b04194a713b768a8e2ad875731))
+
+* fix(video): extract the playlist URL from page markup
+
+For some lessons the player neither requested the manifest during the
+wait nor exposed currentSrc, so capture fell back to the dead static
+URL. Scan the page markup (unescaping JSON) for the absolute signed
+playlist URL, and log what the page contained when nothing is found.
+
+- src/facilito/collectors/video.py: Added _find_playlist_in_html and a
+  markup branch before the static fallback; log bcdn_token/m3u8 presence
+  and the final URL, and log the player trigger outcome
+- src/tests/test_ratelimit.py: Added HTML unescaping, no-match and
+  fetch_video markup-branch tests ([`3836d26`](https://github.com/ivansaul/codigo_facilito_downloader/commit/3836d26b523958b056c3352e845fae3a2e1b25bb))
+
+* fix(video): trigger playback to capture lazy-loaded playlists
+
+Some players only request the HLS manifest once playback starts, so the
+network capture timed out and fell back to the broken static URL.
+
+- src/facilito/collectors/video.py: When no .m3u8 request is observed,
+  start playback (muted) and click a play button, then wait again; also
+  read the playlist from the video element&#39;s currentSrc/src before the
+  static fallback
+- src/tests/test_ratelimit.py: Added trigger, player-source and
+  fetch_video player-source tests
+
+Verified locally with a page that only fetches the manifest on play(). ([`f4eb8bd`](https://github.com/ivansaul/codigo_facilito_downloader/commit/f4eb8bdbc0d389e19e0b2700876bb4ac252c62f9))
+
+* fix(video): send Referer header to the CDN
+
+The captured playlist lives on a BunnyCDN host with referer-based
+hotlink protection: without a Referer it returns 403 HTML, so vsd said
+&#34;no playlists were found in website source.&#34;
+
+- src/facilito/downloaders/video.py: Pass --header Referer &lt;BASE_URL&gt;/
+  to vsd (supported since vsd 0.4.1)
+- src/tests/test_ratelimit.py: Added a test asserting the Referer
+  header is part of the vsd command
+
+Verified manually: with the Referer header vsd parses the playlist and
+muxes the video successfully. ([`a377426`](https://github.com/ivansaul/codigo_facilito_downloader/commit/a3774260b9a4492189016c2d50a75a856db24585))
+
+* fix(playwright): prefer Chrome for media codecs
+
+The bundled Chromium ships without proprietary codecs, so the player
+showed &#34;No compatible source was found for this media.&#34; and some
+players never requested the HLS playlist, breaking playlist capture.
+
+- src/facilito/async_api.py: _launch_browser prefers an installed
+  Chrome/Edge channel and falls back to bundled Chromium; the browser
+  can be forced via the browser argument
+- src/facilito/constants.py: Added BROWSER_ENV_VAR, BROWSER_CHANNELS and
+  BROWSER_CHOICES
+- src/facilito/cli.py: Added --browser with validation and forwarded it
+  to AsyncFacilito
+- src/tests/test_ratelimit.py: Added channel selection, fallback, env
+  var and CLI tests
+- README.md: Documented --browser, FACILITO_BROWSER and the codec reason ([`7b21e7a`](https://github.com/ivansaul/codigo_facilito_downloader/commit/7b21e7ac3e29bef593703bb34cbebc0e649a1dde))
+
+* fix(video): repair VSD download and playlist URL
+
+Fixed video downloads, which failed because the VSD binary was never
+installed and the m3u8 URL was built from a hardcoded pattern that
+the site no longer serves.
+
+Fixed the VSD binary handling in the downloader:
+- Corrected the GitHub release tag path to `vsd-{version}` and pinned
+  version 0.4.1, a published release compatible with the `--quality`
+  flag and the JSON cookie file.
+- Made `_download_vsd` return the resolved binary path or None, log
+  the real exception, remove partial archives on failure, and fall
+  back to a system-installed `vsd`.
+- Aborted `download_video` with a clear error when no binary is
+  available, removed the non-existent `--skip-prompts` flag, and
+  logged vsd stderr so failures are visible in facilito.log.
+
+Updated the video collector to capture the actual `.m3u8` request
+made by the player while the page loads, instead of relying on HTML
+scraping and the static URL, so signed playlist URLs are supported.
+Falls back to the previous strategies when no request is observed.
+
+Modified files (2):
+- src/facilito/downloaders/video.py: Fixed the VSD binary download
+  and command flags, and added failure handling and stderr logging
+- src/facilito/collectors/video.py: Captured the real playlist URL
+  from page network requests, keeping the existing fallbacks
+
+Validated with ruff, mypy and a local Playwright test server. The
+live site could not be tested because Cloudflare blocks headless
+browsers in this environment. ([`cf5b0b1`](https://github.com/ivansaul/codigo_facilito_downloader/commit/cf5b0b177c330716b2542bb5babf79482fc01047))
+
+### Style
+
+* style: use quoted strings in test workflow ([`0e82cfa`](https://github.com/ivansaul/codigo_facilito_downloader/commit/0e82cfa0c79b4d3f0da0ef6e05ba39285de61e54))
+
+### Test
+
+* test(log): keep the test suite out of facilito.log
+
+Running the tests appended pytest noise (fake downloads, tracebacks) to
+the user&#39;s facilito.log, which was confusing when reading real runs.
+
+- src/facilito/logger.py: FACILITO_LOG_FILE overrides the log path and an
+  empty value disables file logging
+- src/tests/conftest.py: Disable file logging for the test suite ([`50712e3`](https://github.com/ivansaul/codigo_facilito_downloader/commit/50712e3bf4cd9ad0eed8a79b999cc2d79b93d885))
+
+* test(ratelimit): cover abort chain, redaction and defaults
+
+Closed the cross-cutting testing gaps that span multiple modules.
+
+- src/tests/test_ratelimit.py: Added an end-to-end abort propagation
+  test through try_except_request, a signed-URL redaction assertion and
+  a defaults-add-no-waits test for throttled_goto and Pacer ([`f1ce66b`](https://github.com/ivansaul/codigo_facilito_downloader/commit/f1ce66b9d392009bb2fecb50a72964fc03a22711))
+
+### Unknown
+
+* Merge pull request #65 from fakel/master ([`a559eed`](https://github.com/ivansaul/codigo_facilito_downloader/commit/a559eed563dff87de90d0dbffa6afe6a41f854f3))
+
+* Merge pull request #62 from ivansaul/chore/test-workflow
+
+chore: remove ffmpeg and playwright install steps ([`6af0d55`](https://github.com/ivansaul/codigo_facilito_downloader/commit/6af0d552428d43cb4c30f09f4f48800d1e7f9988))
+
+* [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+for more information, see https://pre-commit.ci ([`414309e`](https://github.com/ivansaul/codigo_facilito_downloader/commit/414309e6f0cae6713c3ac9384f82eb4228606244))
+
 ## v0.5.0 (2025-11-10)
 
 ### Chore
@@ -88,7 +668,7 @@ Add recommended `poetry` installation instructions, provide detailed installatio
 
 * feat: add support for Windows AMD64 architecture
 
-- Add the &#34;windows, amd64&#34; mapping to the binary URLs, pointing to the
+- Add the &#34;windows, amd64&#34; mapping to the binary URLs, pointing to the 
 x86_64-pc-windows-msvc.zip binary. This expands the supported Windows architectures.
 - This change resolves the error: [ERROR] Unsupported platform: windows amd64.
 
