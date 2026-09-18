@@ -215,6 +215,9 @@ Opciones:
 - `--quality`, `-q`: Especifica la calidad del video (por defecto: `max`). Opciones disponibles: `[max|1080p|720p|480p|360p|min]`.
 - `--override`, `-w`: Sobrescribe el archivo existente si existe (por defecto: `False`).
 - `--threads`, `-t`: Número de hilos a utilizar (por defecto: `10`).
+- Opciones de rate limiting (`--request-delay`, `--request-jitter`, `--download-delay`, `--retry/--no-retry`, `--max-retries`, `--retry-base-delay`, `--retry-max-delay`, `--retry-after-max`, `--block-detection/--no-block-detection`, `--config`): ver [Rate limiting](#rate-limiting).
+- `--browser`: Navegador a lanzar (`auto`, `chrome`, `msedge`, `chromium`); ver [Navegador](#navegador).
+- `--window`: Modo de ventana (`offscreen`, `visible`, `headless`); ver [Navegador](#navegador).
 
 > [!TIP]
 > Para visualizar todas las opciones disponibles, ejecuta `facilito download --help`.
@@ -256,6 +259,166 @@ facilito download URL -q 720p -t 5
 
 > [!NOTE]
 > La versión actual es inestable y puede contener errores. Si necesitas una versión más estable, considera usar la versión anterior [**_[VER]_**][previous-version].
+
+### Rate limiting
+
+El downloader incluye protecciones para evitar ser bloqueado por el servidor (HTTP `429`, retos de Cloudflare, errores temporales de `vsd`). Por defecto el ritmo no cambia (`--request-delay 0`, `--download-delay 0`), pero los reintentos con backoff exponencial están activados.
+
+Opciones:
+
+- `--request-delay`: Retardo base en segundos entre peticiones de página (scraping/MHTML). `0` lo desactiva.
+- `--request-jitter`: Jitter aleatorio en segundos que se suma a `--request-delay`; la espera real es `delay + U(0, jitter)`.
+- `--download-delay`: Retardo en segundos entre descargas de video consecutivas. `0` lo desactiva.
+- `--retry / --no-retry`: Activa o desactiva los reintentos con backoff exponencial (por defecto: activado).
+- `--max-retries`: Número máximo de reintentos tras el primer intento (por defecto: `3`).
+- `--retry-base-delay`: Espera base del primer reintento; se duplica por intento (por defecto: `1.0`).
+- `--retry-max-delay`: Espera máxima de un backoff calculado (por defecto: `30.0`).
+- `--retry-after-max`: Máximo a respetar de un `Retry-After` del servidor; si pide más, se limita y se avisa (por defecto: `60.0`).
+- `--block-detection / --no-block-detection`: Detecta respuestas de rate limit/reto (HTTP `429`, Cloudflare `403`) y hace backoff (por defecto: activado).
+- `--config`: Ruta al archivo de configuración JSON (por defecto: `Facilito/config.json`).
+
+#### Archivo de configuración
+
+Las mismas opciones se pueden fijar en `Facilito/config.json` (relativo al directorio actual). La precedencia es `CLI > archivo > valor por defecto`. También puedes indicar otra ruta con `--config` o la variable de entorno `FACILITO_CONFIG`.
+
+```json
+{
+  "request_delay": 0.3,
+  "request_jitter": 0.3,
+  "download_delay": 1.5,
+  "retry_enabled": true,
+  "max_retries": 3,
+  "retry_base_delay": 1.0,
+  "retry_max_delay": 30.0,
+  "retry_after_max": 60.0,
+  "block_detection_enabled": true
+}
+```
+
+Puedes partir del archivo de ejemplo [`config.example.json`](./config.example.json), que ya trae la configuración recomendada:
+
+```console
+mkdir -p Facilito
+cp config.example.json Facilito/config.json
+```
+
+O indicar su ruta directamente:
+
+```console
+facilito download URL --config config.example.json
+```
+
+#### Configuración recomendada
+
+Comando recomendado para un curso o bootcamp completo: espacia lo suficiente para no llamar la atención del servidor sin renunciar a buena velocidad. Los reintentos con backoff y la detección de bloqueos quedan activados por defecto.
+
+```console
+facilito download URL \
+  --request-delay 0.3 \
+  --request-jitter 0.3 \
+  --download-delay 1.5
+```
+
+Valores recomendados:
+
+| Opción | Valor | Motivo |
+|--------|-------|--------|
+| `--request-delay` | `0.3` | Separa las navegaciones de scraping sin penalizar mucho el tiempo total. |
+| `--request-jitter` | `0.3` | Evita un patrón fijo; además añade aleatoriedad al `--download-delay`. |
+| `--download-delay` | `1.5` | Separa descargas de video consecutivas. |
+| `--max-retries` | `3` (default) | Suficiente para `429`/`5xx` puntuales. |
+| `--retry-base-delay` / `--retry-max-delay` | `1` / `30` (default) | Backoff exponencial acotado. |
+| `--retry-after-max` | `60` (default) | Respeta al servidor sin bloquearte horas. |
+| `--threads` | `10` (default; usa `5`–`8` si te bloquean) | Controla el paralelismo interno de `vsd`. |
+
+Si empiezas a recibir `429`/`403`, sube el espaciado y baja los hilos:
+
+```console
+facilito download URL \
+  --request-delay 0.5 --request-jitter 0.5 \
+  --download-delay 3 \
+  --threads 6
+```
+
+Desactivar los reintentos:
+
+```console
+facilito download URL --no-retry
+```
+
+> [!IMPORTANT]
+> Si se agotan los reintentos, la ejecución se detiene con un error (no se salta la unidad). `--threads` sigue controlando el paralelismo interno de `vsd` y puede provocar throttling por IP aunque el bucle externo esté regulado.
+
+### Navegador
+
+Por defecto se lanza **Google Chrome** (o Edge) si está instalado, porque el Chromium que incluye Playwright **no trae códecs propietarios (H.264/AAC)** y el reproductor muestra `No compatible source was found for this media.`. Si no encuentra Chrome/Edge, cae al Chromium incluido: la descarga con `vsd` sigue funcionando, pero la reproducción dentro del navegador automatizado puede fallar y, en algunos players, eso impide que se solicite el `.m3u8` y se capture la URL.
+
+```console
+facilito download URL --browser chrome
+```
+
+Valores: `auto` (por defecto), `chrome`, `msedge`, `chromium`. También puedes fijarlo con la variable de entorno `FACILITO_BROWSER`:
+
+```console
+FACILITO_BROWSER=chrome facilito download URL
+```
+
+Modo de ventana (`--window`, o `FACILITO_WINDOW`):
+
+- `offscreen` (por defecto en `download`): abre Chrome headful pero **fuera de pantalla y minimizado**, así no aparece ni roba el foco. Mantiene la efectividad (Cloudflare y la captura del `.m3u8` siguen funcionando), a diferencia de `headless`.
+- `visible`: ventana normal en pantalla (útil para depurar).
+- `headless`: sin ventana, pero **Cloudflare suele bloquearlo**; no recomendado.
+
+`facilito login` siempre abre una ventana visible para que puedas autenticarte.
+
+Durante toda la ejecución se reutiliza **una única pestaña** en esa ventana (no se abre/cierra una por unidad), así que la ventana como mucho aparece una vez y puedes ignorarla.
+
+```console
+facilito download URL --window visible
+FACILITO_WINDOW=visible facilito download URL
+```
+
+### YouTube
+
+Algunas lecciones, en lugar del reproductor HLS, incrustan un video de YouTube (`youtube.com/embed/...`, `youtube-nocookie.com/embed/...`, `youtu.be/...` o `watch?v=...`). El downloader los **detecta automáticamente** y los descarga con [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) al mismo `.mp4` del resto de videos, respetando `--quality`, `--override` y los reintentos/pacing.
+
+`yt-dlp` es una dependencia del proyecto; si instalaste con `poetry install` ya está disponible. Si no, instálalo con:
+
+```console
+pip install yt-dlp
+```
+
+Mapeo de calidad: `max` → la mejor disponible, `min` → la peor, y `1080p|720p|480p|360p` → la mejor que no supere esa altura (si no existe, la mejor disponible).
+
+```console
+facilito download https://codigofacilito.com/cursos/go-profesional -q 720p
+```
+
+> [!NOTE]
+> No se descargan playlists, subtítulos ni metadatos de YouTube. Videos privados, eliminados, con embed deshabilitado o bloqueados por región fallan con un mensaje claro en el log. La ruta HLS (vídeos normales con `vsd`) no cambia.
+
+## Reanudar y fallos
+
+Cada curso/bootcamp guarda su progreso en `Facilito/<slug>/.facilito.json` (manifest por curso). Gracias a eso:
+
+- Si el curso **ya se completó** y los archivos siguen ahí, volver a ejecutar `facilito download <url>` no vuelve a recorrerlo (ni descarga ni navega unidades). Usa `--override` para rehacerlo todo.
+- Si hubo **fallos**, un re-run normal los **reintenta automáticamente** sin volver a navegar/descargar las unidades que ya estaban bien.
+- `--retry-failed` reintenta **solo** los fallos registrados, sin recorrer el curso.
+- `--status` muestra el estado (completado / en progreso) y los fallos pendientes.
+
+```console
+# Ver progreso y fallos
+facilito download https://codigofacilito.com/cursos/go-profesional --status
+
+# Reintentar solo lo que falló
+facilito download https://codigofacilito.com/cursos/go-profesional --retry-failed
+
+# Rehacer todo desde cero
+facilito download https://codigofacilito.com/cursos/go-profesional --override
+```
+
+> [!NOTE]
+> El estado es por curso y por máquina. Si borras los archivos de salida, el manifest se re-verifica y se vuelve a recorrer lo que falte. Si el curso añade unidades nuevas upstream, no se detectan con el manifest en `completed`; usa `--override` para refrescar.
 
 ## Cómo contribuir
 

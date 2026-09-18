@@ -1,4 +1,5 @@
 import logging
+import os
 
 import colorlog
 
@@ -30,13 +31,17 @@ console_handler.setFormatter(console_formatter)
 logger.addHandler(console_handler)
 
 # --- File Handler ---
-log_file = "facilito.log"
-file_formatter = logging.Formatter(
-    "{asctime} [{levelname}] [{filename}:{funcName}:{lineno}] - {message}",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    style="{",
-)
-file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
-file_handler.setLevel("DEBUG")
-file_handler.setFormatter(file_formatter)
-logger.addHandler(file_handler)
+# FACILITO_LOG_FILE can point elsewhere, or be set empty to disable file logging
+# (the test suite does this so it does not pollute the user's facilito.log).
+log_file = os.environ.get("FACILITO_LOG_FILE", "facilito.log")
+
+if log_file:
+    file_formatter = logging.Formatter(
+        "{asctime} [{levelname}] [{filename}:{funcName}:{lineno}] - {message}",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        style="{",
+    )
+    file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
+    file_handler.setLevel("DEBUG")
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)

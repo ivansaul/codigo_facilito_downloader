@@ -1,15 +1,17 @@
 import functools
 import os
 import platform
+import re
 import shutil
 import tarfile
 import zipfile
 from pathlib import Path
 
-from ..constants import APP_NAME
+from ..constants import APP_NAME, BASE_URL
+from ..errors import AbortError
 from ..helpers import download_file, hashify, write_json
 from ..logger import logger
-from ..models import Quality
+from ..models import Quality, UnitOutcome
 
 TMP_DIR_PATH = Path(APP_NAME) / ".tmp"
 BIN_DIR_PATH = Path(APP_NAME) / ".bin"
@@ -22,11 +24,9 @@ async def _download_vsd():
     system = platform.system().lower()  # linux, darwin, windows
     arch = platform.machine().lower()  # x86_64, arm64
 
-    version = "0.3.2"
+    version = "0.4.1"
 
-    release_url = (
-        "https://github.com/clitic/vsd/releases/download/{version}/vsd-{version}-{bin}"
-    )
+    release_url = "https://github.com/clitic/vsd/releases/download/vsd-{version}/vsd-{version}-{bin}"
 
     binary_urls = {
         ("linux", "x86_64"): release_url.format(
@@ -69,32 +69,46 @@ async def _download_vsd():
         try:
             logger.info("Downloading video downloader binary")
             await download_file(binary_url, ZIP_PATH)
+
+            if ZIP_NAME.endswith(".zip"):
+                with zipfile.ZipFile(ZIP_PATH, "r") as zip_ref:
+                    zip_ref.extractall(TMP_DIR_PATH)
+
+            if ZIP_NAME.endswith(".tar.xz"):
+                with tarfile.open(ZIP_PATH, "r:xz") as tar:
+                    tar.extractall(TMP_DIR_PATH)
+
+            for current_dir, _subdirs, files in os.walk(TMP_DIR_PATH):
+                for file in files:
+                    if file in ["vsd", "vsd.exe"]:
+                        src = os.path.join(current_dir, file)
+                        shutil.move(src, BIN_DIR_PATH)
         except Exception:
-            logger.error("Error downloading binary video downloader")
-            return
+            logger.exception("Error downloading binary video downloader")
+            ZIP_PATH.unlink(missing_ok=True)
 
-        if ZIP_NAME.endswith(".zip"):
-            with zipfile.ZipFile(ZIP_PATH, "r") as zip_ref:
-                zip_ref.extractall(TMP_DIR_PATH)
-
-        if ZIP_NAME.endswith(".tar.xz"):
-            with tarfile.open(ZIP_PATH, "r:xz") as tar:
-                tar.extractall(TMP_DIR_PATH)
-
-        for dir, subdirs, files in os.walk(TMP_DIR_PATH):
-            for file in files:
-                if file in ["vsd", "vsd.exe"]:
-                    src = os.path.join(dir, file)
-                    shutil.move(src, BIN_DIR_PATH)
-
+    if VSD_BIN_PATH.exists():
         if not os.access(VSD_BIN_PATH, os.X_OK):
             os.chmod(VSD_BIN_PATH, 0o744)
 
-    if "PATH" not in os.environ:
-        os.environ["PATH"] = BIN_DIR_PATH.as_posix()
+        if "PATH" not in os.environ:
+            os.environ["PATH"] = BIN_DIR_PATH.as_posix()
 
-    elif BIN_DIR_PATH.as_posix() not in os.environ["PATH"]:
-        os.environ["PATH"] = BIN_DIR_PATH.as_posix() + os.pathsep + os.environ["PATH"]
+        elif BIN_DIR_PATH.as_posix() not in os.environ["PATH"]:
+            os.environ["PATH"] = (
+                BIN_DIR_PATH.as_posix() + os.pathsep + os.environ["PATH"]
+            )
+
+        return VSD_BIN_PATH
+
+    # Fall back to a system-installed vsd binary
+    system_vsd = shutil.which("vsd")
+
+    if system_vsd:
+        return Path(system_vsd)
+
+    logger.error("vsd binary is not available")
+    return None
 
 
 def ffmpeg_required(func):
@@ -114,7 +128,7 @@ async def download_video(
     path: Path,
     quality: Quality = Quality.MAX,
     **kwargs,
-):
+) -> UnitOutcome:
     """
     Download a video from a URL.
 
@@ -127,48 +141,163 @@ async def download_video(
     :param int threads: Number of threads to use (default: 10).
     """
 
+    import asyncio
     import subprocess
+
+    from ..ratelimit import (
+        RateLimitSettings,
+        RetryPolicy,
+        RetrySignal,
+        ThrottleStats,
+        classify_vsd_error,
+        clean_process_output,
+        parse_retry_after,
+        redact_url,
+        run_with_retry,
+    )
 
     cookies = kwargs.get("cookies", None)
     override = kwargs.get("override", False)
     threads = kwargs.get("threads", 10)
+    settings = kwargs.get("settings") or RateLimitSettings()
+    stats = kwargs.get("stats") or ThrottleStats()
 
     path.parent.mkdir(parents=True, exist_ok=True)
 
     if not override and path.exists():
         logger.info(f"[{path.name}] already exists")
-        return
+        return UnitOutcome(success=True, provider="hls")
 
     TMP_COOKIES_PATH = TMP_DIR_PATH / f"{hashify(url)}.json"
 
-    write_json(TMP_COOKIES_PATH, cookies)
+    if cookies:
+        write_json(TMP_COOKIES_PATH, cookies)
+
+    # Download vsd binary if not exists
+    vsd_bin = await _download_vsd()
+
+    if not vsd_bin:
+        logger.error(f"Error downloading [{path.name}]: vsd binary is not available")
+        return UnitOutcome(
+            success=False, error="vsd binary is not available", provider="hls"
+        )
+
+    # vsd downloads the streams here; we mux them ourselves because vsd 0.4.1
+    # builds an invalid ffmpeg command (no -i) for single-stream playlists.
+    STREAM_DIR = TMP_DIR_PATH / hashify(url)
+    shutil.rmtree(STREAM_DIR, ignore_errors=True)
+    STREAM_DIR.mkdir(parents=True, exist_ok=True)
 
     command = [
-        "vsd",
+        vsd_bin.as_posix(),
         "save",
         url,
-        "--cookies" if cookies else "",
-        TMP_COOKIES_PATH.as_posix() if cookies else "",
         "--directory",
-        TMP_DIR_PATH.as_posix(),
-        "--output",
-        path.as_posix(),
+        STREAM_DIR.as_posix(),
         "--quality",
         quality.value,
-        "--skip-prompts",
         "--threads",
         str(threads),
     ]
 
-    # Download vsd binary if not exists
-    await _download_vsd()
+    if cookies:
+        command += ["--cookies", TMP_COOKIES_PATH.as_posix()]
+
+    # The CDN enforces referer-based hotlink protection: without this header the
+    # playlist requests return 403 and vsd reports "no playlists were found".
+    command += ["--header", "Referer", f"{BASE_URL}/"]
+    command += ["--color", "never"]
+
+    policy = RetryPolicy.from_settings(settings)
+
+    logger.debug(f"Downloading [{path.name}] from {redact_url(url)}")
+
+    def run_vsd():
+        return subprocess.run(command, stderr=subprocess.PIPE, text=True)
+
+    def mux_streams():
+        streams = sorted(
+            (stream for stream in STREAM_DIR.iterdir() if stream.is_file()),
+            key=lambda stream: (
+                0 if "video" in stream.name else 1 if "audio" in stream.name else 2,
+                stream.name,
+            ),
+        )
+
+        if not streams:
+            raise RuntimeError("vsd did not download any stream")
+
+        command = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y"]
+
+        for stream in streams:
+            command += ["-i", stream.as_posix()]
+
+        for index in range(len(streams)):
+            command += ["-map", str(index)]
+
+        command += ["-c", "copy", path.as_posix()]
+
+        result = subprocess.run(command, stderr=subprocess.PIPE, text=True)
+
+        if result.returncode != 0:
+            output = clean_process_output(result.stderr)
+            raise RuntimeError(
+                f"ffmpeg exited with code {result.returncode}: {output[-300:]}"
+            )
+
+    async def save():
+        result = await asyncio.to_thread(run_vsd)
+
+        cleaned = clean_process_output(result.stderr)
+
+        detection = classify_vsd_error(
+            result.returncode,
+            cleaned,
+            block_detection_enabled=settings.block_detection_enabled,
+        )
+
+        if detection is None:
+            await asyncio.to_thread(mux_streams)
+            return
+
+        # A failed attempt can leave a partial file behind; remove it so it is
+        # never mistaken for a completed download on the next attempt.
+        if path.exists():
+            path.unlink(missing_ok=True)
+
+        if cleaned:
+            logger.debug(f"vsd output:\n{cleaned}")
+
+        retry_after = None
+
+        if cleaned:
+            match = re.search(r"retry-after[:\s=]+(\S+)", cleaned, re.IGNORECASE)
+
+            if match:
+                retry_after = parse_retry_after(match.group(1))
+
+        reason = cleaned[-500:]
+        reason = reason or f"vsd exited with {result.returncode}"
+
+        raise RetrySignal(detection, reason, retry_after=retry_after)
 
     try:
         # TODO: Implement custom progress bar
-        subprocess.run(command)
-    except Exception:
+        await run_with_retry(save, policy, stats, label=path.name)
+    except AbortError:
+        raise
+    except Exception as error:
         logger.exception(f"Error downloading [{path.name}]")
+
+        if path.exists():
+            path.unlink(missing_ok=True)
+
+        return UnitOutcome(success=False, error=str(error), provider="hls")
 
     finally:
         if TMP_COOKIES_PATH.exists():
             TMP_COOKIES_PATH.unlink()
+
+        shutil.rmtree(STREAM_DIR, ignore_errors=True)
+
+    return UnitOutcome(success=True, provider="hls")

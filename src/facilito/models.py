@@ -18,6 +18,11 @@ class TypeUnit(str, Enum):
     QUIZ = "quiz"
 
 
+class VideoProvider(str, Enum):
+    HLS = "hls"
+    YOUTUBE = "youtube"
+
+
 class Resource(BaseModel):
     name: str
     url: str
@@ -26,7 +31,14 @@ class Resource(BaseModel):
 class Video(BaseModel):
     id: int | None = None
     url: str
+    provider: VideoProvider = VideoProvider.HLS
     resources: list[Resource] | None = None
+
+
+class UnitOutcome(BaseModel):
+    success: bool
+    error: str | None = None
+    provider: str = "hls"
 
 
 class Lecture(BaseModel):

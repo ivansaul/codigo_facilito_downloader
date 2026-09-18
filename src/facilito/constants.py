@@ -2,6 +2,21 @@ import tempfile
 from pathlib import Path
 
 APP_NAME = "Facilito"
+APP_DIR = Path(APP_NAME)
+CONFIG_FILE = APP_DIR / "config.json"
+CONFIG_ENV_VAR = "FACILITO_CONFIG"
+
+BROWSER_ENV_VAR = "FACILITO_BROWSER"
+BROWSER_CHANNELS = ("chrome", "msedge")
+BROWSER_CHOICES = ("auto", *BROWSER_CHANNELS, "chromium")
+
+WINDOW_ENV_VAR = "FACILITO_WINDOW"
+WINDOW_CHOICES = ("offscreen", "visible", "headless")
+OFFSCREEN_ARGS = ("--window-position=-32000,-32000", "--start-minimized")
+
+STATE_FILE_NAME = ".facilito.json"
+STATE_VERSION = 1
+
 SESSION_DIR = Path(tempfile.gettempdir()) / APP_NAME
 SESSION_FILE = SESSION_DIR / "state.json"
 

@@ -3,6 +3,30 @@ import json
 import re
 from pathlib import Path
 
+YOUTUBE_ID_PATTERN = re.compile(
+    r"(?:youtube\.com|youtube-nocookie\.com)/embed/(?P<embed>[A-Za-z0-9_-]{11})"
+    r"|youtu\.be/(?P<short>[A-Za-z0-9_-]{11})"
+    r"|youtube\.com/watch\?(?:[^\"'\s]*&)?v=(?P<watch>[A-Za-z0-9_-]{11})"
+)
+
+
+def extract_youtube_id(text: str) -> str | None:
+    """
+    Extract the 11-character video id from a YouTube URL or markup.
+
+    :param str text: Text that may contain an embed, short or watch URL.
+    :return str | None: The video id, or None if no valid URL is found.
+    """
+    if not text:
+        return None
+
+    match = YOUTUBE_ID_PATTERN.search(text)
+
+    if not match:
+        return None
+
+    return match.group("embed") or match.group("short") or match.group("watch")
+
 
 def read_json(path: str | Path) -> dict:
     """

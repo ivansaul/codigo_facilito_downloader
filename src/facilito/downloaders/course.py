@@ -3,7 +3,10 @@ from pathlib import Path
 from playwright.async_api import BrowserContext
 
 from ..constants import APP_NAME
-from ..models import Course, TypeUnit
+from ..errors import AbortError
+from ..models import Course, TypeUnit, UnitOutcome
+from ..ratelimit import Pacer, RateLimitSettings
+from ..state import RunState, save_state
 from ..utils import save_page
 from .unit import download_unit
 
@@ -24,10 +27,17 @@ async def download_course(context: BrowserContext, course: Course, **kwargs):
     COURSE_DIR_PATH.mkdir(parents=True, exist_ok=True)
 
     override = kwargs.get("override", False)
+    settings = kwargs.get("settings") or RateLimitSettings()
+    stats = kwargs.get("stats")
+    state: RunState | None = kwargs.get("state")
+    pacer = Pacer(settings)
+
     source_path = COURSE_DIR_PATH / "source.mhtml"
 
     if override or not source_path.exists():
-        await save_page(context, course.url, source_path)
+        await save_page(
+            context, course.url, source_path, settings=settings, stats=stats
+        )
 
     for idx, chapter in enumerate(course.chapters, 1):
         CHAPTER_DIR_PATH = COURSE_DIR_PATH / f"{idx:02d}_{chapter.slug}"
@@ -35,17 +45,39 @@ async def download_course(context: BrowserContext, course: Course, **kwargs):
 
         for jdx, unit in enumerate(chapter.units, 1):
             if unit.type == TypeUnit.VIDEO:
-                await download_unit(
-                    context,
-                    unit,
-                    CHAPTER_DIR_PATH / f"{jdx:02d}_{unit.slug}.mp4",
-                    **kwargs,
-                )
-
+                unit_path = CHAPTER_DIR_PATH / f"{jdx:02d}_{unit.slug}.mp4"
             else:
-                await download_unit(
-                    context,
-                    unit,
-                    CHAPTER_DIR_PATH / f"{jdx:02d}_{unit.slug}.mhtml",
-                    **kwargs,
-                )
+                unit_path = CHAPTER_DIR_PATH / f"{jdx:02d}_{unit.slug}.mhtml"
+
+            key = unit_path.as_posix()
+
+            if (
+                state is not None
+                and not override
+                and state.is_ok(key)
+                and unit_path.exists()
+            ):
+                continue
+
+            skipped = (
+                unit.type == TypeUnit.VIDEO and not override and unit_path.exists()
+            )
+
+            if not skipped:
+                await pacer.wait()
+
+            try:
+                outcome = await download_unit(context, unit, unit_path, **kwargs)
+            except AbortError as error:
+                if state is not None:
+                    state.record(
+                        key,
+                        unit,
+                        UnitOutcome(success=False, error=str(error)),
+                    )
+                    save_state(state)
+                raise
+
+            if state is not None:
+                state.record(key, unit, outcome)
+                save_state(state)

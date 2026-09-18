@@ -1,0 +1,11 @@
+{
+  "request_delay": 0.3,
+  "request_jitter": 0.3,
+  "download_delay": 1.5,
+  "retry_enabled": true,
+  "max_retries": 3,
+  "retry_base_delay": 1.0,
+  "retry_max_delay": 30.0,
+  "retry_after_max": 60.0,
+  "block_detection_enabled": true
+}

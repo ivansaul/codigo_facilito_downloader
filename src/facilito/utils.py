@@ -1,13 +1,59 @@
 import asyncio
 import functools
+import weakref
 from pathlib import Path
 
 from playwright.async_api import BrowserContext, Page
 
-from .errors import UnitError
+from .errors import AbortError, UnitError
 from .helpers import read_json, write_json
 from .logger import logger
 from .models import TypeUnit
+from .ratelimit import RateLimitSettings, ThrottleStats, throttled_goto
+
+_SHARED_PAGES: weakref.WeakKeyDictionary[BrowserContext, dict[str, Page]] = (
+    weakref.WeakKeyDictionary()
+)
+
+
+def _is_closed(page: Page) -> bool:
+    is_closed = getattr(page, "is_closed", None)
+    return bool(is_closed()) if callable(is_closed) else False
+
+
+async def acquire_page(context: BrowserContext, slot: str = "main") -> Page:
+    """
+    Return a page reused across the whole run for the given context.
+
+    Opening a new page per unit makes the browser window reappear and steal
+    focus on every unit; reusing one page per slot avoids that.
+    """
+    slots = _SHARED_PAGES.get(context)
+
+    if slots is None:
+        slots = {}
+        _SHARED_PAGES[context] = slots
+
+    page = slots.get(slot)
+
+    if page is not None and not _is_closed(page):
+        return page
+
+    page = await context.new_page()
+    slots[slot] = page
+    return page
+
+
+async def close_pages(context: BrowserContext) -> None:
+    """Close every page reused for a context; call when the context ends."""
+    slots = _SHARED_PAGES.pop(context, {})
+
+    for page in slots.values():
+        try:
+            if not _is_closed(page):
+                await page.close()
+        except Exception:
+            pass
 
 
 def login_required(func):
@@ -32,6 +78,8 @@ def try_except_request(func):
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
+        except AbortError:
+            raise
         except Exception as e:
             if str(e):
                 logger.exception(e)
@@ -71,14 +119,23 @@ async def progressive_scroll(
 
 @try_except_request
 async def save_page(
-    context: BrowserContext, src: str | Page, path: str | Path = "source.mhtml"
+    context: BrowserContext,
+    src: str | Page,
+    path: str | Path = "source.mhtml",
+    settings: RateLimitSettings | None = None,
+    stats: ThrottleStats | None = None,
 ):
     EXCEPTION = Exception(f"Error saving page as mhtml {path}")
 
     try:
         if isinstance(src, str):
-            page = await context.new_page()
-            await page.goto(src)
+            page = await acquire_page(context)
+            await throttled_goto(
+                page,
+                src,
+                settings or RateLimitSettings(),
+                stats=stats or ThrottleStats(),
+            )
         else:
             page = src
 
@@ -90,12 +147,10 @@ async def save_page(
         with open(path, "w", encoding="utf-8", newline="\n") as file:
             file.write(response["data"])
 
+    except AbortError:
+        raise
     except Exception:
         raise EXCEPTION
-
-    finally:
-        if isinstance(src, str):
-            await page.close()
 
 
 def is_video(url: str) -> bool:
